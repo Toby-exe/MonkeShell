@@ -24,7 +24,7 @@ int main () {
 char *getCommand(char *cmd){
     char argv[100];
 
-    printf("Monkey Requested: %s\n", cmd);
+    printf("Command Entered: %s\n", cmd);
 
     return cmd;
 }
