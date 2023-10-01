@@ -3,6 +3,8 @@
 
 char *getCommand(char* );
 
+char getPi();
+
 int main () {
 
     typedef enum { Running, Terminate } shellState;
