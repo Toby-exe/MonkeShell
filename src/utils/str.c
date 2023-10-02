@@ -123,6 +123,16 @@ char *_strchr(const char *str, unsigned char c)
 	return (char *)str;
 }
 
+//use binary search for this? start searching from strlen(str) - 1
+char *_strrchr(const char *str, unsigned char c)
+{
+	const char *last = str + _strlen(str) - 1;
+	while (last != str && *last != c)
+		last--;
+
+	return (char *)last;
+}
+
 //char *_strstr(const char *str, const char *substr)
 //{
 	/*const char *a, *b;
@@ -172,6 +182,16 @@ char *_strchr(const char *str, unsigned char c)
 {
 
 }*/
+
+size_t _strspn (const char *str1, const char *str2)
+{
+	return 0;
+}
+
+size_t _strcspn (const char *str1, const char *str2)
+{
+	return 0;
+}
 
 char get_char(const char *str, int i)
 {

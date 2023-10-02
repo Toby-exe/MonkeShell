@@ -5,7 +5,7 @@ IOTEST = io_tst
 
 # ========== MODULES AND FLAGS ==========
 STRMODULES = driver.o str.o
-IOMODULES = driver.o io.o
+IOMODULES = test_io.o io.o
 
 CFLAGS = -nostdlib
 GCOVFLAGS = -fprofile-arcs -ftest-coverage
@@ -21,12 +21,12 @@ $(STRTEST): clean $(STRMODULES)
 	./$(STRTEST)
 
 $(IOTEST): clean $(IOMODULES)
-	gcc $(CFLAGS) $(IOMODULES) -o $(IOTEST)
+	gcc $(IOMODULES) -o $(IOTEST)
 	./$(IOTEST)
 
 # ========== CLEAN DIRECTORY AND MAKE ALL COMMAND ==========
 clean:
-	/bin/rm -f *~ *.o $(STRTEST) $(IOTEST)
+	/bin/rm -f *~ *.o *.gcda *.gcov *.gcno $(STRTEST) $(IOTEST) 
 
 all: clean $(STRTEST) $(IOTEST)
 
@@ -43,6 +43,9 @@ io.o: io.c io.h types.h
 
 # x86 ASM
 
-# GCOV TESTING
+# COVERAGE AND CMAKE TESTING (use GCOV and GTEST flags)
 test_str.o: test_str.c
-	gcc -g $(GCOVFLAGS) -c test_str.c
+	gcc -g -c test_str.c
+
+test_io.o: test_io.c
+	gcc -g -c test_io.c

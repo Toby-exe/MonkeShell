@@ -1,0 +1,6 @@
+- what is the FILE type and can I just use integers to represent and input/output stream?
+- should strcat and strcpy be void * instead of char *
+- can unistd.h and fcntl.h be included or are the part of the standard library
+- do error functions need to be implemented
+- what does background process mean?
+- is naming scheme alright? (_functionName)

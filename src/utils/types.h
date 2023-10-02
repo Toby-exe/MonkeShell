@@ -6,6 +6,7 @@ typedef enum { false, true } bool;
 typedef unsigned char UINT8;
 typedef unsigned int  UINT16;
 typedef unsigned long UINT32;
+typedef unsigned int File;
 
 //typedef size_t
 //typedef ssize_t
@@ -40,6 +41,9 @@ int main()
 */
 
 // *** constants *** //
-#define NULL (0)
+#define NULL (0) //not needed because of unistd
+#define FILE_STDIN 0
+#define FILE_STDOUT 1
+#define FILE_STDERR 2
 
 #endif
