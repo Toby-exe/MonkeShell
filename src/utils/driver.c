@@ -61,7 +61,9 @@ void lenTest()
 	// char *s = "hello";
 	char s[20];
 	printf("Enter a string\n");
-	gets(s);
+	//gets(s);
+	//fgets(s, 20, stdin); does length + 1
+	fscanf(stdin, "%s", s);
 	printf("length of %s = %d\n", s, _strlen(s));
 }
 
@@ -113,6 +115,7 @@ void cpyTest()
 {
 	char s1[10];
 	char s2[15];
+	char s3[20];
 	char *s;
 	int n;
 
@@ -120,13 +123,21 @@ void cpyTest()
 	gets(s1);
 	printf("Enter a string to copy\n");
 	gets(s2);
-	printf("Enter a value\n");
-	scanf("%d", &n);
+	//printf("Enter a value\n");
+	//scanf("%d", &n);
 
-	s = _strncpy(s1, s2, n);
+	//s = _strncpy(s1, s2, n);
+	_TESTstrcpy(s1, s2);
+	printf("The new string is: %s\n", s1);
+	printf("%s has a length of %d\n", s1, _strlen(s1));
+
+	gets(s3);
+	_TESTstrcpy(s2, s3);
+	printf("s1 string is: %s\n", s1);
+	printf("s2 string is: %s\n", s2);
 	// s = _strcpy(s1, s2);
-	printf("The new string is: %s\n", s);
-	printf("%s has a length of %d\n", s, _strlen(s));
+	//printf("The new string is: %s\n", s);
+	//printf("%s has a length of %d\n", s, _strlen(s));
 }
 
 void chrTest()

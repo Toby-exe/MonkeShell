@@ -1,4 +1,5 @@
 # ========== EXECUTABLE NAMES ==========
+MAIN = run
 STRTEST = str_tst
 IOTEST = io_tst
 
@@ -7,8 +8,14 @@ STRMODULES = driver.o str.o
 IOMODULES = driver.o io.o
 
 CFLAGS = -nostdlib
+GCOVFLAGS = -fprofile-arcs -ftest-coverage
+GTFLAGS = -lgtest -lgtest_main
 
 # ========== CREATE AND RUN EXECUTABLES ==========
+$(MAIN): clean driver.o
+	gcc driver.o -o $(MAIN)
+	./$(MAIN)
+
 $(STRTEST): clean $(STRMODULES)
 	gcc $(STRMODULES) -o $(STRTEST)
 	./$(STRTEST)
@@ -35,3 +42,7 @@ io.o: io.c io.h types.h
 	gcc -g -c io.c
 
 # x86 ASM
+
+# GCOV TESTING
+test_str.o: test_str.c
+	gcc -g $(GCOVFLAGS) -c test_str.c

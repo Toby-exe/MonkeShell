@@ -76,6 +76,17 @@ char *_strncat(char *dst, const char *src, int n)
 	return dst;
 }
 
+//do strycpy and strcat even need to return anything?
+void _TESTstrcpy(char *dst, const char *src)
+{
+	char *curr = dst;
+
+	while (*src != '\0')
+		*curr++ = *src++;
+
+	*curr = '\0';
+}
+
 char *_strcpy(char *dst, const char *src)
 {
 	char *curr = dst;
