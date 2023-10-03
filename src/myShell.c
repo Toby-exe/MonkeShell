@@ -5,8 +5,24 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
-#define MAX_ARGS 512
+#define MAX_ARGS 1024
+
+char myHeap[0];
+
+void *alloc(int size)
+{
+    static int offset = 0;
+    void *ptr = &myHeap[offset];
+    offset += size;
+    return ptr;
+}
+
+void freeAll()
+{
+    memset(myHeap, 0, 4096);
+}
 
 typedef struct
 {
@@ -18,9 +34,10 @@ typedef struct
 char *getCommand(COMMAND *);
 char *tokenize(char *, char *);
 
+int showDebug = 0;
+
 int main()
 {
-
     COMMAND command;
     printf("Welcome to MonkeShell!\n");
 
@@ -28,25 +45,32 @@ int main()
 
     while (strcmp(command.pathname, "exit") != 0)
     {
-        printf("pathname: %s\n", command.pathname);
-        printf("argc: %d\n", command.argc);
-
-        for (int i = 0; i < command.argc; i++)
+        if (showDebug == 1)
         {
-            printf("argv[%d]: %s\n", i, command.argv[i]);
+            printf("pathname: %s\n", command.pathname);
+            printf("argc: %d\n", command.argc);
+
+            for (int i = 0; i < command.argc; i++)
+            {
+                printf("argv[%d]: %s\n", i, command.argv[i]);
+            }
         }
 
         pid_t pid = fork();
 
         if (pid == 0)
         {
-            printf("IN CHILD PROC\n");
-            printf("Executing in CHILD %s\n", command.pathname);
-            printf("argc in CHILD: %d\n", command.argc);
-            printf("argv[0] in CHILD: %s\n", command.argv[0]);
+            if (showDebug == 1)
+            {
+                printf("IN CHILD PROC\n");
+                printf("Executing in CHILD %s\n", command.pathname);
+                printf("argc in CHILD: %d\n", command.argc);
+                printf("argv[0] in CHILD: %s\n", command.argv[0]);
+            }
 
             command.argv[command.argc] = NULL;
-            
+
+            /* add path name to */
             if (execvp(command.pathname, command.argv) == -1)
             {
                 perror("execvp");
@@ -82,13 +106,20 @@ char *getCommand(COMMAND *command)
     char *token;
     char line[1024];
 
-    printf("Enter a command: ");
-    fgets(line, 1024, stdin); 
+    write(1, "Enter a command: ", 17);
+
+    read(0, line, 1024); /* max length that a command line can be in bash */
 
     line[strlen(line) - 1] = '\0';
-    
     token = tokenize(line, " ");
+    /*allocate space for the argument vector */
+    command->argv[0] = (char *)alloc(strlen(token) + 1);
     command->argv[0] = token;
+    /* print out the alocated memory */
+    if (1)
+    {
+        printf("Allocated memory for argv[0]: %s\n", command->argv[0]);
+    }
     command->argc = 1;
 
     while (token != NULL)
@@ -96,6 +127,7 @@ char *getCommand(COMMAND *command)
         token = tokenize(NULL, " ");
         if (token != NULL)
         {
+            command->argv[command->argc] = (char *)alloc(strlen(token) + 1);
             command->argv[command->argc] = token;
             command->argc += 1;
         }
@@ -103,6 +135,7 @@ char *getCommand(COMMAND *command)
 
     command->pathname = command->argv[0];
 
+    /* myFree(line);  ^^^^ ????*/
     return 0;
 }
 
