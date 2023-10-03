@@ -13,26 +13,25 @@ int _strncmp(const char *, const char *, int);
 char *_strcat(char *, const char *);
 char *_strncat(char *, const char *, int);
 
-void _TESTstrcpy(char *, const char *);
 char *_strcpy(char *, const char *);
 char *_strncpy(char *, const char *, int);
 
-char *_strchr(const char *, unsigned char);
-char *_strrchr(const char *, unsigned char);
+char *_strchr(const char *, int);
+char *_strrchr(const char *, int);
 
-char *_strstr(const char *, const char *);  //fix; might not need because of contains
+char *_strstr(const char *, const char *);
 
-size_t _strspn ( const char *, const char *);
-size_t _strcspn ( const char *, const char *);
+size_t _strspn (const char *, const char *);
+size_t _strcspn (const char *, const char *);
 
-//These methods are functionally similar to the command line tokenizer
-//char *_strtok(char *str, const char *delim)
-//char * strsep(char **stringp, const char *delim);
+void *_memset(void *, int, size_t);
 
-//NOTE: implement mem string functions later like memchr
-
-// *** non standard library methods *** //
+// *** non string.h methods *** //
 char get_char(const char *, int);
 bool contains(const char *, const char *);
+
+// *** may be useful for command line tokenizer *** //
+/*char *_strtok(char *str, const char *delim)
+  char * strsep(char **stringp, const char *delim);*/
 
 #endif

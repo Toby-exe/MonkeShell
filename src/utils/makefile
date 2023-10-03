@@ -5,9 +5,9 @@ IOTEST = io_tst
 
 # ========== MODULES AND FLAGS ==========
 STRMODULES = driver.o str.o
-IOMODULES = test_io.o io.o
+IOMODULES = test_io.o io.o str.o
 
-CFLAGS = -nostdlib
+#CFLAGS = -nostdlib
 GCOVFLAGS = -fprofile-arcs -ftest-coverage
 GTFLAGS = -lgtest -lgtest_main
 

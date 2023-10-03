@@ -9,6 +9,7 @@ void cpyTest();
 void chrTest();
 void getTest();
 void subTest();
+void spnTest();
 
 int main()
 {
@@ -19,35 +20,39 @@ int main()
 	{
 		printf("Enter string test driver option\n");
 		scanf("%d", &option);
-		(void) getchar(); //clean the input of newline
+		(void)getchar(); // clean the input of newline
 
 		switch (option)
 		{
-			case 0:
-				lenTest();
-				break;
-			case 1:
-				cmpTest();
-				break;
-			case 2:
-				catTest();
-				break;
-			case 3:
-				cpyTest();
-				break;
-			case 4:
-				chrTest();
-				break;
-			case 5:
-				getTest();
-				break;
-			case 6:
-				subTest();
-				break;
-			case -1:
-				break;
-			default:
-				printf("Error! option %d does not exist. Try Again\n", option);
+		case 0:
+			lenTest();
+			break;
+		case 1:
+			cmpTest();
+			break;
+		case 2:
+			catTest();
+			break;
+		case 3:
+			cpyTest();
+			break;
+		case 4:
+			chrTest();
+			break;
+		case 5:
+			getTest();
+			break;
+		case 6:
+			subTest();
+			break;
+		case 7:
+			spnTest();
+			break;
+		case -1:
+			break;
+		default:
+			printf("Error! option %d does not exist. Try Again\n", option);
+			break;
 		}
 
 		printf("\n=============================================\n\n");
@@ -61,8 +66,8 @@ void lenTest()
 	// char *s = "hello";
 	char s[20];
 	printf("Enter a string\n");
-	//gets(s);
-	//fgets(s, 20, stdin); does length + 1
+	// gets(s);
+	// fgets(s, 20, stdin); does length + 1
 	fscanf(stdin, "%s", s);
 	printf("length of %s = %d\n", s, _strlen(s));
 }
@@ -115,29 +120,20 @@ void cpyTest()
 {
 	char s1[10];
 	char s2[15];
-	char s3[20];
-	char *s;
 	int n;
 
 	printf("Enter the destination string (can be empty)\n");
 	gets(s1);
 	printf("Enter a string to copy\n");
 	gets(s2);
-	//printf("Enter a value\n");
-	//scanf("%d", &n);
+	// printf("Enter a value\n");
+	// scanf("%d", &n);
 
-	//s = _strncpy(s1, s2, n);
-	_TESTstrcpy(s1, s2);
+	// s = _strncpy(s1, s2, n);
+	
+	_strcpy(s1, s2);
 	printf("The new string is: %s\n", s1);
 	printf("%s has a length of %d\n", s1, _strlen(s1));
-
-	gets(s3);
-	_TESTstrcpy(s2, s3);
-	printf("s1 string is: %s\n", s1);
-	printf("s2 string is: %s\n", s2);
-	// s = _strcpy(s1, s2);
-	//printf("The new string is: %s\n", s);
-	//printf("%s has a length of %d\n", s, _strlen(s));
 }
 
 void chrTest()
@@ -186,7 +182,7 @@ void subTest()
 {
 	char s1[20];
 	char s2[20];
-	//char *s;
+	// char *s;
 	bool b;
 	char c;
 	int i;
@@ -196,11 +192,26 @@ void subTest()
 	printf("Enter a substring\n");
 	gets(s2);
 
-	//s = _strstr(s1, s2);
+	// s = _strstr(s1, s2);
 	b = contains(s1, s2);
 
 	if (b == false)
 		printf("'%s' does not exist in the string\n", s2);
 	else
 		printf("'%s' is in '%s'", s2, s1);
+}
+
+void spnTest()
+{
+	int len;
+	char s1[20];
+	char s2[20];
+
+	printf("Enter a string\n");
+	gets(s1);
+	printf("Enter a substring\n");
+	gets(s2);
+
+	len = strcspn(s1, s2);
+   	printf("First matched character is at %d\n", len + 1);
 }

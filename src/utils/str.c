@@ -32,8 +32,7 @@ int _strcmp(const char *str1, const char *str2)
 
 int _strncmp(const char *str1, const char *str2, int n)
 {
-	int i;
-	for (i = 0; *str1 == *str2 && i < n; i++)
+	for (int i = 0; *str1 == *str2 && i < n; i++)
 	{
 		if (*str1++ == '\0' || *str2++ == '\0')
 			break;
@@ -76,17 +75,6 @@ char *_strncat(char *dst, const char *src, int n)
 	return dst;
 }
 
-//do strycpy and strcat even need to return anything?
-void _TESTstrcpy(char *dst, const char *src)
-{
-	char *curr = dst;
-
-	while (*src != '\0')
-		*curr++ = *src++;
-
-	*curr = '\0';
-}
-
 char *_strcpy(char *dst, const char *src)
 {
 	char *curr = dst;
@@ -115,27 +103,28 @@ char *_strncpy(char *dst, const char *src, int n)
 	return dst;
 }
 
-char *_strchr(const char *str, unsigned char c)
+//int == unsigned char
+char *_strchr(const char *str, int c)
 {
-	while (*str != '\0' && *str != c)
+	while(*str && *str != c)
 		str++;
-
+	
 	return (char *)str;
 }
 
-//use binary search for this? start searching from strlen(str) - 1
-char *_strrchr(const char *str, unsigned char c)
+char *_strrchr(const char *str, int c)
 {
 	const char *last = str + _strlen(str) - 1;
+
 	while (last != str && *last != c)
 		last--;
 
 	return (char *)last;
 }
 
-//char *_strstr(const char *str, const char *substr)
-//{
-	/*const char *a, *b;
+char *_strstr(const char *str, const char *substr)
+{
+	const char *a, *b;
 
 	b = substr;
 
@@ -143,6 +132,7 @@ char *_strrchr(const char *str, unsigned char c)
 	if (*b == 0)
 		return (char *)str;
 
+	//look for first character of substr in str
 	for (; *str != '\0'; str++)
 	{
 		if (*str != *b)
@@ -150,6 +140,7 @@ char *_strrchr(const char *str, unsigned char c)
 
 		a = str;
 
+		//first character has been found. now compare the rest of the substring
 		while (1)
 		{
 			if (*b == 0)
@@ -162,35 +153,52 @@ char *_strrchr(const char *str, unsigned char c)
 		b = substr;
 	}
 
-	return 0;*/
-
-	/*const char *p = str;
-	const int len = _strlen(substr);
-
-	if (!len)
-		return str;
-
-	for (; (p = _strchr(p, *substr)) != 0; p++)
-	{
-		if (strncmp(p, substr, len) == 0)
-			return (char *)p;
-	}
-	return (0);*/
-//}
-
-/*char *_strtok(char *str, const char *delim)
-{
-
-}*/
-
-size_t _strspn (const char *str1, const char *str2)
-{
-	return 0;
+	return NULL;
 }
 
-size_t _strcspn (const char *str1, const char *str2)
+/*returns the offset of the first occurence of a character in str
+that does not exist in accept*/
+size_t _strspn (const char *str, const char *accept)
 {
-	return 0;
+	const char *start = str;
+	const char *c;
+
+	for (; *str != '\0'; str++)
+	{
+		//compare the current str character with each accept character
+		for (c = accept; *c != '\0'; c++)
+		{
+			if (*str != *c)
+				goto done;
+		}
+	}
+
+	done:	return str - start;
+}
+
+/*returns the offset of the first occurence of a character in str
+that exists in reject*/
+size_t _strcspn (const char *str, const char *reject)
+{
+	const char *start = str;
+	const char *c;
+
+	for (; *str != '\0'; str++)
+	{
+		//compare the current str character with each reject character
+		for (c = reject; *c != '\0'; c++)
+		{
+			if (*str == *c)
+				goto done;
+		}
+	}
+
+	done:	return str - start;
+}
+
+void *_memset(void *s, int c, size_t n)
+{
+	
 }
 
 char get_char(const char *str, int i)
@@ -201,18 +209,17 @@ char get_char(const char *str, int i)
 	return str[i];
 }
 
-//abba, ba
+//modified version of strstr() that only returns a boolean
 bool contains(const char *str, const char *substr)
 {
 	const char *a, *b;
 
 	b = substr;
 
-	// empty substring
 	if (*b == '\0')
 		return false;
 
-	//look for first character of substr in str
+	
 	for (; *str != '\0'; str++)
 	{
 		if (*str != *b)
@@ -220,7 +227,6 @@ bool contains(const char *str, const char *substr)
 
 		a = str;
 
-		//first character has been found. now compare the rest of the substring
 		while (1)
 		{
 			if (*b == '\0')

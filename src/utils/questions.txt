@@ -4,3 +4,18 @@
 - do error functions need to be implemented
 - what does background process mean?
 - is naming scheme alright? (_functionName)
+- should we be using register variables
+- should we be using mem methods instead of str methods?
+- are we allowed to include stdlib.h as long as we only use system call
+wrappers and builtin types?
+- can we initialize arrays like char line[1024]
+path 
+jobs
+
+sigchld
+
+linked list of child processes (not a queue since child processes don't
+necessarily operate with first in first out logic)
+parent receives signal from terminated child with sigchld to clear it
+from the process table for background processes
+
