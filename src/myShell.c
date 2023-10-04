@@ -7,21 +7,37 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 
+#define HEAP_LEN 4096
 #define MAX_ARGS 1024
 
-char myHeap[0];
+char heap[HEAP_LEN];
+int heapOffset = 0;
 
-void *alloc(int size)
+void *alloc(size_t block_sz)
 {
-    static int offset = 0;
-    void *ptr = &myHeap[offset];
-    offset += size;
+    void *ptr = &heap[heapOffset];
+    heapOffset += block_sz;
     return ptr;
 }
 
-void freeAll()
+void free_all()
 {
-    memset(myHeap, 0, 4096);
+    //memset(heap, '\0', 4096);
+    heapOffset = 0;
+}
+
+void printHeap()
+{
+    printf("Entire Heap: ");
+    for(int i = 0; i < HEAP_LEN; i++)
+    {
+        if(heap[i] == '\0')
+            printf("0");
+        else
+            printf("%c", heap[i]);
+    }
+        
+    printf("\n");
 }
 
 typedef struct
@@ -42,6 +58,7 @@ int main()
     printf("Welcome to MonkeShell!\n");
 
     getCommand(&command);
+    printHeap();
 
     while (strcmp(command.pathname, "exit") != 0)
     {
@@ -90,6 +107,7 @@ int main()
             exit(1);
         }
         getCommand(&command);
+        printHeap();
     }
 
     return 0;
@@ -106,15 +124,18 @@ char *getCommand(COMMAND *command)
     char *token;
     char line[1024];
 
-    write(1, "Enter a command: ", 17);
+    printf("Enter a command: ");
+    fgets(line, 1024, stdin);
 
-    read(0, line, 1024); /* max length that a command line can be in bash */
+    //write(1, "Enter a command: ", 18);
+    //read(0, line, 1024); /* max length that a command line can be in bash */
 
     line[strlen(line) - 1] = '\0';
     token = tokenize(line, " ");
     /*allocate space for the argument vector */
     command->argv[0] = (char *)alloc(strlen(token) + 1);
-    command->argv[0] = token;
+    //command->argv[0] = token;
+    strcpy(command->argv[0], token);
     /* print out the alocated memory */
     if (1)
     {
@@ -128,7 +149,8 @@ char *getCommand(COMMAND *command)
         if (token != NULL)
         {
             command->argv[command->argc] = (char *)alloc(strlen(token) + 1);
-            command->argv[command->argc] = token;
+            //command->argv[command->argc] = token;
+            strcpy(command->argv[command->argc], token);
             command->argc += 1;
         }
     }
