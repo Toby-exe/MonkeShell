@@ -39,6 +39,42 @@ void printHeap()
         
     printf("\n");
 }
+char *_fgets(char *buffer, int size, int fd)
+{
+    int bytesRead = 0;
+    char ch;
+
+    if (size <= 0 || buffer == NULL) {
+        return NULL;
+    }
+
+    while (bytesRead < size - 1) {
+        ssize_t n = read(fd, &ch, 1);
+
+        if (n < 0) {
+            perror("read");
+            return NULL;
+        }
+
+        if (n == 0) {
+            // End of file reached
+            if (bytesRead == 0) {
+                return NULL; // Nothing read
+            }
+            break;
+        }
+
+        buffer[bytesRead++] = ch;
+
+        if (ch == '\n') {
+            break; // Stop reading at newline
+        }
+    }
+
+    buffer[bytesRead] = '\0'; // Null-terminate the string
+
+    return buffer;
+}  
 
 typedef struct
 {
@@ -124,16 +160,17 @@ char *getCommand(COMMAND *command)
     char *token;
     char line[1024];
 
-    printf("Enter a command: ");
-    fgets(line, 1024, stdin);
-
-    //write(1, "Enter a command: ", 18);
+    //printf("Enter a command: ");
+    write(1, "Enter a command: ", 18);
+    
+    _fgets(line, 1024, 0);
     //read(0, line, 1024); /* max length that a command line can be in bash */
+    
 
     line[strlen(line) - 1] = '\0';
     token = tokenize(line, " ");
     /*allocate space for the argument vector */
-    command->argv[0] = (char *)alloc(strlen(token) + 1);
+    command->argv[0] = alloc((strlen(token) + 1) * sizeof(char));
     //command->argv[0] = token;
     strcpy(command->argv[0], token);
     /* print out the alocated memory */
@@ -148,7 +185,7 @@ char *getCommand(COMMAND *command)
         token = tokenize(NULL, " ");
         if (token != NULL)
         {
-            command->argv[command->argc] = (char *)alloc(strlen(token) + 1);
+            command->argv[command->argc] = alloc((strlen(token) + 1) * sizeof(char));
             //command->argv[command->argc] = token;
             strcpy(command->argv[command->argc], token);
             command->argc += 1;

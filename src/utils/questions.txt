@@ -1,21 +1,34 @@
 - what is the FILE type and can I just use integers to represent and input/output stream?
-- should strcat and strcpy be void * instead of char *
 - can unistd.h and fcntl.h be included or are the part of the standard library
 - do error functions need to be implemented
-- what does background process mean?
 - is naming scheme alright? (_functionName)
 - should we be using register variables
 - should we be using mem methods instead of str methods?
 - are we allowed to include stdlib.h as long as we only use system call
-wrappers and builtin types?
-- can we initialize arrays like char line[1024]
+  wrappers and builtin types? (yes)
+- can we initialize arrays like char line[1024] (yes this is static allocation)
 path 
 jobs
 
-sigchld
-
-linked list of child processes (not a queue since child processes don't
-necessarily operate with first in first out logic)
 parent receives signal from terminated child with sigchld to clear it
-from the process table for background processes
+from the process table
 
+Background processes:
+- linked list of child processes (not a queue since child processes don't
+  necessarily operate with first in first out logic) for background processes
+
+- should the linked list only store background jobs or all jobs (an & command
+  can result in zombie children)
+
+- when a child is created with &, store it in linked list at tail. 
+  when a child process terminates, traverse the list looking for its pid.
+  or should we always be searching after every command. Do signals
+  solve this problem (since the child directly notifies the parent)
+
+- do we have to statically allocate the linked list?
+- if the heap can be used to allocate many different types,
+  what should it be an array of (i thought size_t)
+
+- whats wrong with read vs fgets or getline
+
+- does token need to be statically allocated (tokenize())? 
