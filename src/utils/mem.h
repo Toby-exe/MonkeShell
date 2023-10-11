@@ -29,8 +29,8 @@
 #define MAX_ARGS 1024
 
 // ********** static memory allocation ********** //
-char heap[HEAP_LEN];
-size_t heapOffset = 0;
+extern char heap[HEAP_LEN];
+extern size_t heapOffset;
 
 typedef struct
 {
@@ -38,8 +38,8 @@ typedef struct
     size_t size;
 } Block;
 
-Block allocatedBlocks[MAX_BLOCKS];
-size_t blockCount = 0;
+extern Block allocatedBlocks[MAX_BLOCKS];
+extern size_t blockCount;
 
 char *resize();
 void *alloc(size_t);

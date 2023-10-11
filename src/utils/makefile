@@ -32,7 +32,7 @@ $(MEMTEST): clean $(MEMMODULES)
 
 # ========== CLEAN DIRECTORY AND MAKE ALL COMMAND ==========
 clean:
-	/bin/rm -f *~ *.o *.gcda *.gcov *.gcno $(STRTEST) $(IOTEST) 
+	/bin/rm -f *~ *.o *.gcda *.gcov *.gcno $(STRTEST) $(IOTEST) $(MEMTEST)
 
 all: clean $(STRTEST) $(IOTEST) $(MEMTEST)
 

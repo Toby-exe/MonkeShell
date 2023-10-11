@@ -1,6 +1,6 @@
-// #include <stdio.h>
-// #include <string.h>
-// #include "str.h"
+#include <stdio.h>
+#include <string.h>
+#include "str.h"
 #include "mem.h"
 
 // #define HEAP_LEN 	4096
@@ -131,20 +131,20 @@
 // 	heapOffset = 0;
 // }
 
-// void printHeap()
-// {
-// 	printf("Entire Heap: ");
-// 	for (int i = 0; i < HEAP_LEN; i++)
-// 	{
-// 		if (heap[i] == '\0')
-// 			printf("0");
-// 		else
-// 			putchar(heap[i]);
-// 	}
+void printHeap()
+{
+	printf("Entire Heap: ");
+	for (int i = 0; i < HEAP_LEN; i++)
+	{
+		if (heap[i] == '\0')
+			printf("0");
+		else
+			putchar(heap[i]);
+	}
 
-// 	printf("\n");
-// 	//printBlocks();
-// }
+	printf("\n");
+	//printBlocks();
+}
 
 // void printBlocks()
 // {
@@ -170,70 +170,70 @@
 // eventually replace this with a series of CMake google tests
 int main()
 {
-	// // *** alloc, free, free_all test *** //
-	// char *strings[MAX_ARGS];
-	// char buff[64];
-	// char *s;
-	// int d;
+	// *** alloc, free, free_all test *** //
+	char *strings[1024];
+	char buff[64];
+	char *s;
+	int d;
 
-	// strings[0] = alloc((strlen("my balls") + 1) * sizeof(char));
-	// strcpy(strings[0], "my balls");
+	strings[0] = alloc((strlen("my balls") + 1) * sizeof(char));
+	strcpy(strings[0], "my balls");
 
-	// strings[1] = alloc((strlen("pluh") + 1) * sizeof(char));
-	// strcpy(strings[1], "pluh");
+	strings[1] = alloc((strlen("pluh") + 1) * sizeof(char));
+	strcpy(strings[1], "pluh");
 
-	// int *i = (int *)alloc(3 * sizeof(int));
-	// *i = 4;
-	// *(i + 1) = 8;
-	// *(i + 2) = 7;
+	int *i = (int *)alloc(3 * sizeof(int));
+	*i = 4;
+	*(i + 1) = 8;
+	*(i + 2) = 7;
 
-	// strings[2] = alloc((strlen("yessir") + 1) * sizeof(char));
-	// strcpy(strings[2], "yessir");
+	strings[2] = alloc((strlen("yessir") + 1) * sizeof(char));
+	strcpy(strings[2], "yessir");
 
-	// printHeap();
+	printHeap();
 
-	// _free(strings[1]);
-	// // after a free, the freed block get taken over by the block next to (as expected)
-	// // but any blocks after lose their start locations. need a way to shift
-	// // all pointer rather than just elements.
-	// //printf("\n%s\n", strings[2]);
-	// // free_all();
+	_free(strings[1]);
+	// after a free, the freed block get taken over by the block next to (as expected)
+	// but any blocks after lose their start locations. need a way to shift
+	// all pointer rather than just elements.
+	//printf("\n%s\n", strings[2]);
+	// free_all();
 
-	// printHeap();
+	printHeap();
 
-	// strings[3] = alloc((strlen("yuh") + 1) * sizeof(char));
-	// strcpy(strings[3], "yuh");
+	strings[3] = alloc((strlen("yuh") + 1) * sizeof(char));
+	strcpy(strings[3], "yuh");
 
-	// printHeap();
+	printHeap();
 
-    // /*scanf("%d", d);
+    /*scanf("%d", d);
 
-	// for(int i = 0; i < d; i++)
-	// {
-	// 	s = fgets(buff, 64, stdin);
+	for(int i = 0; i < d; i++)
+	{
+		s = fgets(buff, 64, stdin);
 
-	// 	if(s[0] == '.')
-	// 		break;
+		if(s[0] == '.')
+			break;
 
-	// 	strings[i] = alloc((strlen(s) + 1) * sizeof(char));
-	// 	strcpy(strings[i], s);
-	// }*/
+		strings[i] = alloc((strlen(s) + 1) * sizeof(char));
+		strcpy(strings[i], s);
+	}*/
 
-	// // *** realloc test *** //
-	// /*int *ptr = (int *)malloc(sizeof(int) * 2);
-	// int i;
-	// int *ptr_new;
+	// *** realloc test *** //
+	/*int *ptr = (int *)malloc(sizeof(int) * 2);
+	int i;
+	int *ptr_new;
 
-	// *ptr = 10;
-	// *(ptr + 1) = 20;
+	*ptr = 10;
+	*(ptr + 1) = 20;
 
-	// ptr_new = (int *)realloc(ptr, sizeof(int) * 3);
-	// *(ptr_new + 2) = 30;
-	// for (i = 0; i < 3; i++)
-	// 	printf("%d ", *(ptr_new + i));
+	ptr_new = (int *)realloc(ptr, sizeof(int) * 3);
+	*(ptr_new + 2) = 30;
+	for (i = 0; i < 3; i++)
+		printf("%d ", *(ptr_new + i));
 
-	// getchar();
-	// return 0;*/
+	getchar();
+	return 0;*/
 
 	return 0;
 }

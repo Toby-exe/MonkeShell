@@ -1,5 +1,10 @@
 #include "mem.h"
 
+char heap[HEAP_LEN];
+size_t heapOffset = 0;
+Block allocatedBlocks[MAX_BLOCKS];
+size_t blockCount = 0;
+
 //call before an alloc if the alloc would go out of bounds (dynamic array)
 char *resize()
 {
@@ -47,7 +52,7 @@ void _free(void *ptr)
 	// invalid pointer
 	if (ptr == NULL || ptr < heap || ptr >= heap + HEAP_LEN)
 	{
-		printf("BAD POINTER\n");
+		//printf("BAD POINTER\n");
 		return;
 	}
 
@@ -62,13 +67,13 @@ void _free(void *ptr)
 
 	// Calculate the size of the freed block
 	size_t block_size = block_end - block_start + 1; //(first character to \0)
-	printf("SIZE OF THE FREED BLOCK IS %zu\n", block_size);
+	//printf("SIZE OF THE FREED BLOCK IS %zu\n", block_size);
 
 	// Shift elements to the right of the freed block to fill the gap
 	char *src = block_end;
 	char *dst = block_start;
 
-	printf("START = %c & END = %c", *dst, *src);
+	//printf("START = %c & END = %c", *dst, *src);
 
 	//*src < heap + heapOffset &&
 	src++; // skip null terminator of freed block so it isn't copied

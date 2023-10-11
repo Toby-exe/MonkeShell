@@ -62,3 +62,7 @@ if (numAllocatedBlocks < MAX_BLOCKS) {
 } else {
     printf("MAX BLOCKS EXCEEDED\n");
 }
+
+- allocate each command in command line
+- allocate each argv in a command
+- allocating fields of a command should use the command's allocated space
