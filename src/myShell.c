@@ -8,36 +8,38 @@
 #include <fcntl.h>
 #include "utils/str.h"
 #include "myShell.h"
+#include "utils/mem.h"
 
-char heap[HEAP_LEN];
-int heapOffset = 0;
 
-void *alloc(size_t block_sz)
-{
-    void *ptr = &heap[heapOffset];
-    heapOffset += block_sz;
-    return ptr;
-}
+// char heap[HEAP_LEN];
+// int heapOffset = 0;
 
-void free_all()
-{
-    // memset(heap, '\0', 4096);
-    heapOffset = 0;
-}
+// void *alloc(size_t block_sz)
+// {
+//     void *ptr = &heap[heapOffset];
+//     heapOffset += block_sz;
+//     return ptr;
+// }
 
-void printHeap()
-{
-    printf("Entire Heap: ");
-    for (int i = 0; i < HEAP_LEN; i++)
-    {
-        if (heap[i] == '\0')
-            printf("0");
-        else
-            printf("%c", heap[i]);
-    }
+// void free_all()
+// {
+//     // memset(heap, '\0', 4096);
+//     heapOffset = 0;
+// }
 
-    printf("\n");
-}
+// void printHeap()
+// {
+//     printf("Entire Heap: ");
+//     for (int i = 0; i < HEAP_LEN; i++)
+//     {
+//         if (heap[i] == '\0')
+//             printf("0");
+//         else
+//             printf("%c", heap[i]);
+//     }
+
+//     printf("\n");
+// }
 
 void readCommandLine(COMMAND_LINE *);
 char *getCommand(COMMAND *);
@@ -86,10 +88,8 @@ void readCommandLine(COMMAND_LINE *currentComandLine)
     line[strlen(line) - 1] = '\0';
     token = tokenize(line, " ");
 
-    currentComandLine->commands[commandCount] = malloc(sizeof(COMMAND));
-
-    currentComandLine->commands[commandCount]->argv[argCount] = malloc((strlen(token) + 1) * sizeof(char));
-
+    currentComandLine->commands[commandCount] = alloc(sizeof(COMMAND));
+    currentComandLine->commands[commandCount]->argv[argCount] = alloc((strlen(token) + 1) * sizeof(char));
     strcpy(currentComandLine->commands[commandCount]->argv[argCount], token);
 
     while (token != NULL)
@@ -104,18 +104,29 @@ void readCommandLine(COMMAND_LINE *currentComandLine)
                 commandCount++;
                 argCount = 0;
                 printf("Encountered a pipe\n");
-                currentComandLine->commands[commandCount] = malloc(sizeof(COMMAND));
+                currentComandLine->commands[commandCount] = alloc(sizeof(COMMAND));
             }
             else
             {
                 argCount++;
-                currentComandLine->commands[commandCount]->argv[argCount] = malloc((strlen(token) + 1) * sizeof(char));
+                currentComandLine->commands[commandCount]->argv[argCount] = alloc((strlen(token) + 1) * sizeof(char));
                 strcpy(currentComandLine->commands[commandCount]->argv[argCount], token);
             }
         }
     }
 
-    
+    printf("Command Count: %d\n", commandCount);
+
+    for (int i = 0; i <= commandCount; i++)
+    {
+        printf("Command %d: ", i);
+        for (int j = 0; j <= argCount; j++)
+        {
+            printf("%s ", currentComandLine->commands[i]->argv[j]);
+        }
+        printf("\n");
+    }
+
 }
 
 /**
@@ -124,47 +135,47 @@ void readCommandLine(COMMAND_LINE *currentComandLine)
  * @param command A pointer to a COMMAND struct to store the parsed command.
  * @return Returns 0 on success.
  */
-char *getCommand(COMMAND *command)
-{
-    char *token;
-    char line[1024];
+// char *getCommand(COMMAND *command)
+// {
+//     char *token;
+//     char line[1024];
 
-    // printf("Enter a command: ");
-    write(1, "Enter a command: ", 18);
+//     // printf("Enter a command: ");
+//     write(1, "Enter a command: ", 18);
 
-    _fgets(line, 1024, 0);
-    // read(0, line, 1024); /* max length that a command line can be in bash */
+//     _fgets(line, 1024, 0);
+//     // read(0, line, 1024); /* max length that a command line can be in bash */
 
-    line[strlen(line) - 1] = '\0';
-    token = tokenize(line, " ");
-    /*allocate space for the argument vector */
-    command->argv[0] = alloc((strlen(token) + 1) * sizeof(char));
-    // command->argv[0] = token;
-    strcpy(command->argv[0], token);
-    /* print out the alocated memory */
-    if (1)
-    {
-        printf("Allocated memory for argv[0]: %s\n", command->argv[0]);
-    }
-    command->argc = 1;
+//     line[strlen(line) - 1] = '\0';
+//     token = tokenize(line, " ");
+//     /*allocate space for the argument vector */
+//     command->argv[0] = alloc((strlen(token) + 1) * sizeof(char));
+//     // command->argv[0] = token;
+//     strcpy(command->argv[0], token);
+//     /* print out the alocated memory */
+//     if (1)
+//     {
+//         printf("Allocated memory for argv[0]: %s\n", command->argv[0]);
+//     }
+//     command->argc = 1;
 
-    while (token != NULL)
-    {
-        token = tokenize(NULL, " ");
-        if (token != NULL)
-        {
-            command->argv[command->argc] = alloc((strlen(token) + 1) * sizeof(char));
-            // command->argv[command->argc] = token;
-            strcpy(command->argv[command->argc], token);
-            command->argc += 1;
-        }
-    }
+//     while (token != NULL)
+//     {
+//         token = tokenize(NULL, " ");
+//         if (token != NULL)
+//         {
+//             command->argv[command->argc] = alloc((strlen(token) + 1) * sizeof(char));
+//             // command->argv[command->argc] = token;
+//             strcpy(command->argv[command->argc], token);
+//             command->argc += 1;
+//         }
+//     }
 
-    command->pathname = command->argv[0];
+//     command->pathname = command->argv[0];
 
-    /* myFree(line);  ^^^^ ????*/
-    return 0;
-}
+//     /* myFree(line);  ^^^^ ????*/
+//     return 0;
+// }
 
 /**
  * Tokenizes a string based on a given delimiter.
