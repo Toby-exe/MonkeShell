@@ -10,6 +10,7 @@ void chrTest();
 void getTest();
 void subTest();
 void spnTest();
+void memTest();
 
 int main()
 {
@@ -47,6 +48,9 @@ int main()
 			break;
 		case 7:
 			spnTest();
+			break;
+		case 8:
+			memTest();
 			break;
 		case -1:
 			break;
@@ -212,6 +216,24 @@ void spnTest()
 	printf("Enter a substring\n");
 	gets(s2);
 
-	len = strcspn(s1, s2);
+	len = _strcspn(s1, s2);
    	printf("First matched character is at %d\n", len + 1);
+}
+
+void memTest()
+{
+	char *s;
+	char s1[20];
+	char c;
+	int i;
+
+	printf("Enter a string\n");
+	fgets(s1, 20, stdin);
+	printf("Enter a character\n");
+	c = getchar();
+	printf("Enter a length\n");
+	scanf("%d", &i);
+
+	_memset(s1, c, i);
+	printf("The new string is: %s", s1);
 }

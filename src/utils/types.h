@@ -41,7 +41,7 @@ int main()
 */
 
 // *** constants *** //
-#define NULL (0) //not needed because of unistd
+//#define NULL (0) //not needed because of unistd
 #define FILE_STDIN 0
 #define FILE_STDOUT 1
 #define FILE_STDERR 2

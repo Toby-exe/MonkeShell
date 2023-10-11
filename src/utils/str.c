@@ -58,17 +58,13 @@ char *_strcat(char *dst, const char *src)
 
 char *_strncat(char *dst, const char *src, int n)
 {
+	char *curr = dst + _strlen(dst);
+
 	if (n > _strlen(src))
 		n = _strlen(src);
 
-	char *curr = dst + _strlen(dst);
-
-	int i = 0;
-	while (*src != '\0' && i < n)
-	{
+	for (int i = 0; *src != '\0' && i < n; i++)
 		*curr++ = *src++;
-		i++;
-	}
 
 	*curr = '\0';
 
@@ -91,12 +87,11 @@ char *_strncpy(char *dst, const char *src, int n)
 {
 	char *curr = dst;
 
-	int i = 0;
-	while (*src != '\0' && i < n)
-	{
+	if (n > _strlen(src))
+		n = _strlen(src);
+
+	for (int i = 0; *src != '\0' && i < n; i++)
 		*curr++ = *src++;
-		i++;
-	}
 
 	*curr = '\0';
 
@@ -153,7 +148,7 @@ char *_strstr(const char *str, const char *substr)
 		b = substr;
 	}
 
-	return NULL;
+	return (0);
 }
 
 /*returns the offset of the first occurence of a character in str
@@ -198,13 +193,18 @@ size_t _strcspn (const char *str, const char *reject)
 
 void *_memset(void *s, int c, size_t n)
 {
-	
+	unsigned char *byte_ptr = s;
+
+    for (size_t i = 0; i < n; i++)
+        byte_ptr[i] = (unsigned char)c;
+		
+    return s;
 }
 
 char get_char(const char *str, int i)
 {
 	if (i < 0 || i >= _strlen(str))
-		return NULL;
+		return (0);
 
 	return str[i];
 }

@@ -27,8 +27,38 @@ Background processes:
 
 - do we have to statically allocate the linked list?
 - if the heap can be used to allocate many different types,
-  what should it be an array of (i thought size_t)
+  what should it be an array of (i thought size_t); keep as char array, use casting to store other types
 
-- whats wrong with read vs fgets or getline
 
-- does token need to be statically allocated (tokenize())? 
+- does token need to be statically allocated (tokenize())? is token = input fine or should it be strcpy
+
+-does a command structure need to be allocated followed by its fields, or just the fields
+-if just the fields, how is the structure getting allocated
+
+struct BlockInfo* allocatedBlocks[MAX_BLOCKS];
+
+if (numAllocatedBlocks < MAX_BLOCKS) {
+    struct BlockInfo* blockInfo = malloc(sizeof(struct BlockInfo));
+    if (blockInfo == NULL) {
+        printf("BLOCKINFO ALLOCATION FAILED\n");
+        return NULL;
+    }
+
+    blockInfo->ptr = ptr;
+    blockInfo->size = block_sz;
+    allocatedBlocks[numAllocatedBlocks] = blockInfo;
+    numAllocatedBlocks++;
+} else {
+    printf("MAX BLOCKS EXCEEDED\n");
+}
+
+  vs.
+
+struct BlockInfo allocatedBlocks[MAX_BLOCKS];
+if (numAllocatedBlocks < MAX_BLOCKS) {
+    allocatedBlocks[numAllocatedBlocks].ptr = ptr;
+    allocatedBlocks[numAllocatedBlocks].size = block_sz;
+    numAllocatedBlocks++;
+} else {
+    printf("MAX BLOCKS EXCEEDED\n");
+}

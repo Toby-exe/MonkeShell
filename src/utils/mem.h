@@ -11,7 +11,7 @@
 *
 *   char *token = "ls"
 *   command->argv[0] = (char *)alloc(_strlen(token) + 1);
-*   command->argv[0] = token;
+*   _strcpy(command->argv[0], token);
 *
 *   |###########|###########|###########|
 *	|l |s |\0|\0|\0|\0|\0|\0|\0|\0|\0|\0|
@@ -20,35 +20,49 @@
 */
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdio.h>    //temp
 #include "types.h"
+#include "str.h"
 
 #define HEAP_LEN 4096
+#define MAX_BLOCKS 2048
 #define MAX_ARGS 1024
 
 // ********** static memory allocation ********** //
-size_t heap[HEAP_LEN];
-static int heapOffset = 0;
+char heap[HEAP_LEN];
+size_t heapOffset = 0;
 
-size_t *resize();
-void *alloc(size_t);
-void free(int block);   //void free(void *ptr);
-void free_all();
-
-// ********** process list (for signalling) ********** //
-typedef CNode *CPtr;
 typedef struct
 {
-    pid_t pid;
-    CPtr next;
-    CPtr prev;
-} CNode;
-//cNode tail;
-//cNode head;
+    void *ptr;
+    size_t size;
+} Block;
 
-void create_node();
-void add(CNode node, CNode head);
-void delete(CNode node, CNode head);
-void find(pid_t pid);
+Block allocatedBlocks[MAX_BLOCKS];
+size_t blockCount = 0;
 
+char *resize();
+void *alloc(size_t);
+void *_realloc(void *, size_t);
+void _free(void *);
+void free_all();
+
+// ********** process list (for signaling) ********** //
+//can just be an array of pid_t's
+// typedef struct
+// {
+//     pid_t pid;
+//     CPtr next;
+//     CPtr prev;
+// } CNode;
+// typedef CNode *CPtr;
+// pid_t *cList;
+// //cNode tail;
+// //cNode head;
+
+// void create_node();
+// void add(CNode node, CNode head);
+// void delete(CNode node, CNode head);
+// void find(pid_t pid);
 
 #endif

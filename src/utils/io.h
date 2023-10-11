@@ -5,23 +5,17 @@
 #include <unistd.h>
 #include "types.h"
 
-//NOTE: all File types used to be FILE
+//NOTE: FILE *stream == int fd
+
 // *** custom C standard library stdio.h *** //
 // *** INPUT *** //
-int _scanf(const char * format, ...);
-int _fscanf(File *stream, const char *format, ...);
-
-char *_gets(char *s);
-char *_fgets(char *s, int size, File *stream);
-
-ssize_t _getline(char **lineptr, size_t *n, File *stream); //adds newline character from input
+int _fscanf(int, const char *format, ...);
+char *_fgets(char *, int, int);
+ssize_t _getline(char **, size_t *, int);
 
 // *** OUTPUT *** //
-int _printf(const char *, ...);
 int _fprintf(File *stream, const char *format, ...);
-
-int _puts(const char *s);
-int _fputs(const char *s, File *stream);
+int _fputs(const char *s, int);
 
 // *** ERROR / DEBUG *** //
 //uses stderr instead of stdin or stdout
@@ -29,5 +23,8 @@ int _fputs(const char *s, File *stream);
 //void perror(const char *s); (basically just printf)
 //int ferror(File *stream);
 //char *strerror(int errnum);
+
+// *** non stdio.h methods *** //
+
 
 #endif
