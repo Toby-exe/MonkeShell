@@ -13,12 +13,13 @@ typedef struct
 
 
 typedef struct {
-    COMMAND *commands[MAX_COMMANDS];
+    COMMAND commands[MAX_COMMANDS];
     int commandCount;
+    int hasPipe;
+    int pipeCount;
     int hasInputRedirection;
     int hasOutputRedirection;
-    int pipeCount;
-    int hasBackground;
+    int isBackground;
 } COMMAND_LINE;
 
 

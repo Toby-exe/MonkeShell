@@ -10,7 +10,6 @@
 #include "myShell.h"
 #include "utils/mem.h"
 
-
 // char heap[HEAP_LEN];
 // int heapOffset = 0;
 
@@ -42,7 +41,7 @@
 // }
 
 void readCommandLine(COMMAND_LINE *);
-char *getCommand(COMMAND *);
+void initCommandLine(COMMAND_LINE *);
 char *tokenize(char *, char *);
 
 int showDebug = 0;
@@ -50,36 +49,57 @@ int showDebug = 0;
 int main()
 {
     // COMMAND command;
-    COMMAND_LINE *currentCommandLine = malloc(sizeof(COMMAND_LINE));
+    COMMAND_LINE currentCommandLine;
     printf("Welcome to MonkeShell!\n");
 
-    // getCommand(&command);
+    readCommandLine(&currentCommandLine);
     // printHeap();
-    readCommandLine(currentCommandLine);
-    //printHeap();
 
-    // // if command line has at least one pipe run pipe logic else run normal logic
-    // while(currentCommandLine->commands[0]->argv[0] != "exit")
-    // {
-    //     if(currentCommandLine->pipeCount > 0)
-    //     {
-    //         // run pipe logic
-    //     }
-    //     else
-    //     {
-    //         // run normal logic
-    //     }
-    // }
+    while (strcmp(currentCommandLine.commands[0].pathname, "exit") != 0)
+    {
+        pid_t pid = fork();
+
+        if (pid == 0)
+        {
+            // Child process
+            currentCommandLine.commands[0].argv[currentCommandLine.commands[0].argc] = NULL;
+
+            /* add path name to */
+            if (execvp(currentCommandLine.commands[0].pathname, currentCommandLine.commands[0].argv) == -1)
+            {
+                printf("Error: Command not found\n");
+                // exit(1);
+            }
+            // exit(0);
+        }
+
+        if (currentCommandLine.isBackground == 0)
+        {
+            // we are in the parent process
+            waitpid(pid, NULL, 0);
+        }
+        else
+        {
+            // we are in the parent process
+            printf("Background process started with pid: %d\n", pid);
+        }
+
+        readCommandLine(&currentCommandLine);
+    }
 
     return 0;
 }
 
-void readCommandLine(COMMAND_LINE *currentComandLine)
+void readCommandLine(COMMAND_LINE *currentCommandLine)
 {
     int commandCount = 0;
     int argCount = 0;
     char *token;
     char line[1024];
+
+    // init all COMMAND_LINE values sshould be function later
+    initCommandLine(currentCommandLine);
+
 
     write(1, "Enter a command: ", 18);
 
@@ -88,94 +108,85 @@ void readCommandLine(COMMAND_LINE *currentComandLine)
     line[strlen(line) - 1] = '\0';
     token = tokenize(line, " ");
 
-    currentComandLine->commands[commandCount] = alloc(sizeof(COMMAND));
-    currentComandLine->commands[commandCount]->argv[argCount] = alloc((strlen(token) + 1) * sizeof(char));
-    strcpy(currentComandLine->commands[commandCount]->argv[argCount], token);
-
     while (token != NULL)
     {
-
-        token = tokenize(NULL, " ");
-
-        if (token != NULL)
+        char *nextToken = tokenize(NULL, " ");
+        if (_strncmp(token, "|", 1) == 0)
         {
-            if (strcmp(token, "|") == 0)
+            currentCommandLine->pipeCount++;
+            if (nextToken != NULL)
             {
                 commandCount++;
                 argCount = 0;
-                printf("Encountered a pipe\n");
-                currentComandLine->commands[commandCount] = alloc(sizeof(COMMAND));
-            }
-            else
-            {
-                argCount++;
-                currentComandLine->commands[commandCount]->argv[argCount] = alloc((strlen(token) + 1) * sizeof(char));
-                strcpy(currentComandLine->commands[commandCount]->argv[argCount], token);
             }
         }
-    }
-
-    printf("Command Count: %d\n", commandCount);
-
-    for (int i = 0; i <= commandCount; i++)
-    {
-        printf("Command %d: ", i);
-        for (int j = 0; j <= argCount; j++)
+        else if (_strncmp(token, ">", 1) == 0)
         {
-            printf("%s ", currentComandLine->commands[i]->argv[j]);
+            // set output file
         }
-        printf("\n");
-    }
+        else if (_strncmp(token, "<", 1) == 0)
+        {
+            // set input file
+        }
 
+        else
+        {
+            if (token[strlen(token) - 1] == '&')
+            {
+                // If & is at the end of the token, remove it and set background flag
+                token[strlen(token) - 1] = '\0';
+                currentCommandLine->isBackground = 1;
+            }
+            else if (_strncmp(token, "&", 1) == 0 && nextToken == NULL)
+            {
+                // If & is a new token and it's the last one, set background flag
+                currentCommandLine->isBackground = 1;
+            }
+
+            COMMAND *currentCommand = &currentCommandLine->commands[commandCount];
+            // init all COMMAND values sshould be function later
+            currentCommand->argv[argCount] = alloc((strlen(token) + 1) * sizeof(char));
+            strcpy(currentCommand->argv[argCount], token);
+            // printf("Allocated memory for argv[%d]: %s\n", argCount, currentCommand->argv[argCount]);
+            argCount++;
+            currentCommand->argc = argCount;
+
+            token = nextToken;
+        }
+
+        // set the namess of each command pathname
+        for (int i = 0; i <= commandCount; i++)
+        {
+            COMMAND *currentCommand = &currentCommandLine->commands[i];
+            currentCommand->pathname = currentCommand->argv[0];
+        }
+
+        printf("\nCommand Count: %d\n", commandCount);
+        printf("Pipe Count: %d\n", currentCommandLine->pipeCount);
+        printf("is background: %d\n\n", currentCommandLine->isBackground);
+
+        // formate nicley and print out each command, its pathname, and its args give it some indenting
+        for (int i = 0; i <= commandCount; i++)
+        {
+            COMMAND *currentCommand = &currentCommandLine->commands[i];
+            printf("Command %d: %s\n", i, currentCommand->pathname);
+            printf("Arg Count: %d\n", currentCommand->argc);
+            for (int j = 0; j < currentCommand->argc; j++)
+            {
+                printf("Arg %d: %s\n", j, currentCommand->argv[j]);
+            }
+        }
+    }
 }
 
-/**
- * Reads a line of input from stdin and tokenizes it into an array of arguments.
- *
- * @param command A pointer to a COMMAND struct to store the parsed command.
- * @return Returns 0 on success.
- */
-// char *getCommand(COMMAND *command)
-// {
-//     char *token;
-//     char line[1024];
-
-//     // printf("Enter a command: ");
-//     write(1, "Enter a command: ", 18);
-
-//     _fgets(line, 1024, 0);
-//     // read(0, line, 1024); /* max length that a command line can be in bash */
-
-//     line[strlen(line) - 1] = '\0';
-//     token = tokenize(line, " ");
-//     /*allocate space for the argument vector */
-//     command->argv[0] = alloc((strlen(token) + 1) * sizeof(char));
-//     // command->argv[0] = token;
-//     strcpy(command->argv[0], token);
-//     /* print out the alocated memory */
-//     if (1)
-//     {
-//         printf("Allocated memory for argv[0]: %s\n", command->argv[0]);
-//     }
-//     command->argc = 1;
-
-//     while (token != NULL)
-//     {
-//         token = tokenize(NULL, " ");
-//         if (token != NULL)
-//         {
-//             command->argv[command->argc] = alloc((strlen(token) + 1) * sizeof(char));
-//             // command->argv[command->argc] = token;
-//             strcpy(command->argv[command->argc], token);
-//             command->argc += 1;
-//         }
-//     }
-
-//     command->pathname = command->argv[0];
-
-//     /* myFree(line);  ^^^^ ????*/
-//     return 0;
-// }
+void initCommandLine(COMMAND_LINE *currentCommandLine) {
+    currentCommandLine->hasPipe = 0;
+    currentCommandLine->pipeCount = 0;
+    currentCommandLine->commandCount = 0;
+    currentCommandLine->isBackground = 0;
+    currentCommandLine->hasInputRedirection = 0;
+    currentCommandLine->hasOutputRedirection = 0;
+}
 
 /**
  * Tokenizes a string based on a given delimiter.
