@@ -15,7 +15,7 @@ extern char **environ;
 void runCommand(COMMAND *, int);
 void readCommandLine(COMMAND_LINE *);
 void initCommandLine(COMMAND_LINE *);
-void execPipe(COMMAND_LINE *);
+void execPipe(COMMAND_LINE , int);
 void execFileRedir(COMMAND_LINE *);
 char *tokenize(char *, char *);
 void cmdHandler(COMMAND_LINE);
@@ -71,6 +71,8 @@ int main()
         if (currentCommandLine.hasPipe == 1)
         {
 
+            // execPipe(currentCommandLine, start);
+
             for (i = start; i < currentCommandLine.pipeCount; i++)
             {
                 currCMD = &currentCommandLine.commands[i];
@@ -112,8 +114,6 @@ int main()
                 // set input for next command to read end of pipe
                 in = fd[READ_END];
             }
-
-            
         }
 
         // execute last command
@@ -155,8 +155,19 @@ int main()
     return 0;
 }
 
-void cmdHandler (COMMAND_LINE cmdLine) {
-    
+void cmdHandler(COMMAND_LINE cmdLine)
+{
+}
+
+void execPipe(COMMAND_LINE currentCommandLine, int start)
+{
+    int pid;
+    int fd[2];
+    int childStatus;
+    COMMAND *currCMD;
+
+    int lastCommand = currentCommandLine.commandCount;
+    printf("last command: %d\n", lastCommand);
 }
 
 void readCommandLine(COMMAND_LINE *currentCommandLine)
@@ -239,6 +250,8 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
     {
         COMMAND *currentCommand = &currentCommandLine->commands[i];
         currentCommand->pathname = currentCommand->argv[0];
+        //null terminate each command
+        currentCommand->argv[currentCommand->argc] = NULL;
     }
 
     printf("\nCommand Count: %d\n", commandCount);
