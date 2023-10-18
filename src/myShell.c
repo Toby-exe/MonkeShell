@@ -15,7 +15,7 @@ extern char **environ;
 void runCommand(COMMAND *, int);
 void readCommandLine(COMMAND_LINE *);
 void initCommandLine(COMMAND_LINE *);
-void execPipe(COMMAND_LINE , int);
+void execPipe(COMMAND_LINE, int);
 void execFileRedir(COMMAND_LINE *);
 char *tokenize(char *, char *);
 void cmdHandler(COMMAND_LINE);
@@ -42,7 +42,7 @@ int main()
         COMMAND *currCMD;
         int start = 0;
         in = 0;
-        int lastCommand = currentCommandLine.commandCount;
+        int lastCommand = currentCommandLine.commandCount - 1;
 
         if (currentCommandLine.inputFile != NULL)
         {
@@ -65,6 +65,12 @@ int main()
             {
                 waitpid(pid, NULL, 0);
             }
+            else
+            {
+                // add child to background process list
+                printf("Added child to background process list\n");
+                printf("Child PID: %d\n", pid);
+            }
             start = 1;
         }
 
@@ -72,7 +78,6 @@ int main()
         {
 
             // execPipe(currentCommandLine, start);
-
             for (i = start; i < currentCommandLine.pipeCount; i++)
             {
                 currCMD = &currentCommandLine.commands[i];
@@ -110,6 +115,12 @@ int main()
                 {
                     waitpid(pid, NULL, 0);
                 }
+                else
+                {
+                    // add child to background process list
+                    printf("Added child to background process list\n");
+                    printf("Child PID: %d\n", pid);
+                }
 
                 // set input for next command to read end of pipe
                 in = fd[READ_END];
@@ -140,7 +151,7 @@ int main()
                 close(file);
             }
 
-            execvp(currentCommandLine.commands[i].pathname, currentCommandLine.commands[i].argv);
+            execvp(currentCommandLine.commands[lastCommand].pathname, currentCommandLine.commands[lastCommand].argv);
         }
 
         // wait for last command to finish
@@ -148,8 +159,19 @@ int main()
         {
             waitpid(pid, NULL, 0);
         }
+        else
+        {
+            // add child to background process list
+            printf("Added child to background process list\n");
+            printf("Child PID: %d\n", pid);
+        }
 
         readCommandLine(&currentCommandLine);
+        while (currentCommandLine.commandCount == 0)
+        {
+            printf("No command entered\n");
+            readCommandLine(&currentCommandLine);
+        }
     }
 
     return 0;
@@ -166,13 +188,13 @@ void execPipe(COMMAND_LINE currentCommandLine, int start)
     int childStatus;
     COMMAND *currCMD;
 
-    int lastCommand = currentCommandLine.commandCount;
+    int lastCommand = currentCommandLine.commandCount - 1;
     printf("last command: %d\n", lastCommand);
 }
 
 void readCommandLine(COMMAND_LINE *currentCommandLine)
 {
-    int commandCount = 0;
+    int commandCount = 1;
     int argCount = 0;
     char *token;
     char line[1024];
@@ -184,6 +206,13 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
     write(1, "Enter a command: ", 18);
 
     _fgets(line, 1024, 0);
+    // check to see if the user entered a command
+    if (line[0] == '\n')
+    {
+        // no command entered
+        currentCommandLine->commandCount = 0;
+        return;
+    }
 
     line[strlen(line) - 1] = '\0';
     token = tokenize(line, " ");
@@ -204,6 +233,11 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
         else if (_strncmp(token, ">", 1) == 0)
         {
             // the next token will be the name of the output file
+            if (nextToken[strlen(nextToken) - 1] == '&')
+            {
+                // remove & from token
+                nextToken[strlen(nextToken) - 1] = '\0';
+            }
             currentCommandLine->outputFile = alloc((strlen(nextToken) + 1) * sizeof(char));
             strcpy(currentCommandLine->outputFile, nextToken);
             skipToken = 1;
@@ -211,30 +245,39 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
         else if (_strncmp(token, "<", 1) == 0)
         {
             // the next token will be the name of the input file
+            if (token[strlen(token) - 1] == '&')
+            {
+                // remove & from token
+                token[strlen(token) - 1] = '\0';
+            }
             currentCommandLine->inputFile = alloc((strlen(nextToken) + 1) * sizeof(char));
             strcpy(currentCommandLine->inputFile, nextToken);
             skipToken = 1;
+        }
+        else if (_strncmp(token, "&", 1) == 0)
+        {
+            // the next token will be the name of the input file
+            currentCommandLine->isBackground = 1;
         }
         else
         {
             if (token[strlen(token) - 1] == '&')
             {
-                // If & is at the end of the token, remove it and set background flag
+                printf("& is attachde to token: %s\n", token);
+                // remove & from token
                 token[strlen(token) - 1] = '\0';
+                printf("token after removing &: %s\n", token);
                 currentCommandLine->isBackground = 1;
             }
-            else if (_strncmp(token, "&", 1) == 0 && nextToken == NULL)
-            {
-                // If & is a new token and it's the last one, set background flag
-                currentCommandLine->isBackground = 1;
-            }
+
+            printf("skip token ? %s\n", skipToken == 1 ? "yes" : "no");
 
             if (skipToken == 0)
             {
-
-                COMMAND *currentCommand = &currentCommandLine->commands[commandCount];
+                COMMAND *currentCommand = &currentCommandLine->commands[commandCount - 1];
                 // init all COMMAND values sshould be function later
                 currentCommand->argv[argCount] = alloc((strlen(token) + 1) * sizeof(char));
+                printf("**** adding token: %s *****\n", token);
                 strcpy(currentCommand->argv[argCount], token);
                 // printf("Allocated memory for argv[%d]: %s\n", argCount, currentCommand->argv[argCount]);
                 argCount++;
@@ -246,13 +289,15 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
     }
 
     // set pathname for each command
-    for (int i = 0; i <= commandCount; i++)
+    for (int i = 0; i < commandCount; i++)
     {
         COMMAND *currentCommand = &currentCommandLine->commands[i];
         currentCommand->pathname = currentCommand->argv[0];
-        //null terminate each command
+        // null terminate each command
         currentCommand->argv[currentCommand->argc] = NULL;
     }
+    // set command count
+    currentCommandLine->commandCount = commandCount;
 
     printf("\nCommand Count: %d\n", commandCount);
     printf("Pipe Count: %d\n", currentCommandLine->pipeCount);
@@ -267,7 +312,7 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
     }
 
     // formate nicley and print out each command, its pathname, and its args give it some indenting
-    for (int i = 0; i <= commandCount; i++)
+    for (int i = 0; i < commandCount; i++)
     {
         COMMAND *currentCommand = &currentCommandLine->commands[i];
         printf("Command %d: %s\n", i, currentCommand->pathname);
