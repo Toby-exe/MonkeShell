@@ -27,6 +27,13 @@ int main()
 {
     // COMMAND command;
     COMMAND_LINE currentCommandLine;
+    printf("                                         \n");
+    printf("______  ___               ______        \n");
+    printf("___   |/  /______ _______ ___  /_______ \n");
+    printf("__  /|_/ / _  __ \\__  __ \\__  //_/_  _ \\\n");
+    printf("_  /  / /  / /_/ /_  / / /_  ,<   /  __/\n");
+    printf("/_/  /_/   \\____/ /_/ /_/ /_/|_|  \\___/ \n");
+    printf("                                        \n");
     printf("Welcome to MonkeShell!\n");
 
     readCommandLine(&currentCommandLine);
@@ -120,26 +127,25 @@ void cmdHandler(COMMAND_LINE currentCommandLine)
 
 void execProg(char *pathname, char **argv)
 {
-    //check default paths first by concatenating pathname with each path 
-    //if not found then check current directory
-    printf("trying to execute: %s\n", pathname);
+
+    // printf("trying to execute: %s\n", pathname);
     char testPath1[100] = "/bin/";
     char testPath2[100] = "/usr/bin/";
 
-    while(execve(testPath1, argv, NULL) == -1)
+    while (execve(testPath1, argv, NULL) == -1)
     {
-        printf("trying to execute: %s\n", testPath1);
+        // printf("trying to execute: %s\n", testPath1);
         strcat(testPath1, pathname);
-        printf("trying to execute: %s\n", testPath1);
-        if(execve(testPath1, argv, NULL) == -1)
+        // printf("trying to execute: %s\n", testPath1);
+        if (execve(testPath1, argv, NULL) == -1)
         {
-            printf("trying to execute: %s\n", testPath2);
+            // printf("trying to execute: %s\n", testPath2);
             strcat(testPath2, pathname);
-            printf("trying to execute: %s\n", testPath2);
-            if(execve(testPath2, argv, NULL) == -1)
+            // printf("trying to execute: %s\n", testPath2);
+            if (execve(testPath2, argv, NULL) == -1)
             {
-                printf("trying to execute: %s\n", pathname);
-                if(execve(pathname, argv, NULL) == -1)
+                // printf("trying to execute: %s\n", pathname);
+                if (execve(pathname, argv, NULL) == -1)
                 {
                     printf("Command not found\n");
                     return;
@@ -161,22 +167,6 @@ int pidStateHandler(int pid, int isBackground)
         // add child to background process list
         printf("Added child to background process list\n");
         printf("Child PID: %d\n", pid);
-    }
-    if (WIFEXITED(childStatus))
-    {
-        printf("Child exited with status: %d\n", WEXITSTATUS(childStatus));
-    }
-    else if (WIFSIGNALED(childStatus))
-    {
-        printf("Child exited due to signal: %d\n", WTERMSIG(childStatus));
-    }
-    else if (WIFSTOPPED(childStatus))
-    {
-        printf("Child stopped due to signal: %d\n", WSTOPSIG(childStatus));
-    }
-    else if (WIFCONTINUED(childStatus))
-    {
-        printf("Child continued\n");
     }
     return childStatus;
 }
@@ -242,7 +232,7 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
     // init all COMMAND_LINE values sshould be function later
     initCommandLine(currentCommandLine);
 
-    write(1, "Enter a command: ", 18);
+    write(1, "Monke$ ", 7);
 
     _fgets(line, 1024, 0);
     // check to see if the user entered a command
@@ -304,21 +294,16 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
         {
             if (token[strlen(token) - 1] == '&')
             {
-                printf("& is attachde to token: %s\n", token);
                 // remove & from token
                 token[strlen(token) - 1] = '\0';
-                printf("token after removing &: %s\n", token);
                 currentCommandLine->isBackground = 1;
             }
-
-            printf("skip token ? %s\n", skipToken == 1 ? "yes" : "no");
 
             if (skipToken == 0)
             {
                 COMMAND *currentCommand = &currentCommandLine->commands[commandCount - 1];
                 // init all COMMAND values sshould be function later
                 currentCommand->argv[argCount] = alloc((strlen(token) + 1) * sizeof(char));
-                printf("**** adding token: %s *****\n", token);
                 strcpy(currentCommand->argv[argCount], token);
                 // printf("Allocated memory for argv[%d]: %s\n", argCount, currentCommand->argv[argCount]);
                 argCount++;
@@ -339,30 +324,6 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
     }
     // set command count
     currentCommandLine->commandCount = commandCount;
-
-    printf("\nCommand Count: %d\n", commandCount);
-    printf("Pipe Count: %d\n", currentCommandLine->pipeCount);
-    printf("is background: %d\n\n", currentCommandLine->isBackground);
-    if (currentCommandLine->inputFile != NULL)
-    {
-        printf("Input File: %s\n", currentCommandLine->inputFile);
-    }
-    if (currentCommandLine->outputFile != NULL)
-    {
-        printf("Output File: %s\n", currentCommandLine->outputFile);
-    }
-
-    // formate nicley and print out each command, its pathname, and its args give it some indenting
-    for (int i = 0; i < commandCount; i++)
-    {
-        COMMAND *currentCommand = &currentCommandLine->commands[i];
-        printf("Command %d: %s\n", i, currentCommand->pathname);
-        printf("Arg Count: %d\n", currentCommand->argc);
-        for (int j = 0; j < currentCommand->argc; j++)
-        {
-            printf("Arg %d: %s\n", j, currentCommand->argv[j]);
-        }
-    }
 }
 
 void initCommandLine(COMMAND_LINE *currentCommandLine)
