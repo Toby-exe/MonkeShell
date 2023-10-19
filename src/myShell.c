@@ -9,6 +9,7 @@
 #include "utils/str.h"
 #include "myShell.h"
 #include "utils/mem.h"
+#include "signal.h"
 
 extern char **environ;
 
@@ -19,35 +20,111 @@ void execFileRedir(COMMAND_LINE *);
 char *tokenize(char *, char *);
 void cmdHandler(COMMAND_LINE);
 int pidStateHandler(int, int);
-void execProg(char *, char **);
+int execProg(char *, char **);
 
 int showDebug = 0;
+int shellPid;
+
+void handleSigChld(int snum)
+{
+    pid_t pid;
+    int status;
+
+    pid = wait(&status);
+    if (pid == -1)
+    {
+        // foreground jobs will have been waitpid'd by the time they terminate
+        perror("wait");
+    }
+    else
+    {
+        printf("parent: child process pid=%d exited with status %d\n", (int)pid, WEXITSTATUS(status));
+    }
+
+    // removeJob(pid);
+    signal(SIGCHLD, handleSigChld); /* reset the signal, recall handleSigChld*/
+}
+
+void handleSigInt(int snum)
+{
+    // pid_t gpid = getpgrp();
+    // _fputs("forcefully terminating the process with ctrl+C\n", 1);
+    // kill(-gpid, SIGKILL);
+    // signal(SIGCHLD, SIG_DFL);
+
+    pid_t pid = getpid();
+    if (pid != shellPid)
+    {
+        _fputs("forcefully terminating the process with ctrl+C\n", 1);
+        kill(pid, SIGKILL);
+        signal(SIGINT, handleSigInt);
+    }
+    else
+    {
+        _fputs("\nIN SHELL\n", 1);
+        // return to shell
+        signal(SIGINT, SIG_DFL);
+        return;
+    }
+}
+
+
+void inputRedirection(COMMAND_LINE currentCommandLine) {
+    int file;
+    int pid;
+
+    pid = fork();
+
+    if (pid == 0) {
+        // child process
+        file = open(currentCommandLine.inputFile, O_RDONLY);
+        dup2(file, STDIN_FILENO);
+        close(file);
+
+        // execute command
+        if (execProg(currentCommandLine.commands[0].pathname, currentCommandLine.commands[0].argv) == -1) {
+            _exit(0);
+        }
+    }
+
+    pidStateHandler(pid, currentCommandLine.isBackground);
+}
 
 int main()
 {
-    // COMMAND command;
+    shellPid = getpid();
+    signal(SIGINT, handleSigInt);
+    signal(SIGCHLD, handleSigChld); /* detect child termination */
     COMMAND_LINE currentCommandLine;
-    printf("                                         \n");
     printf("______  ___               ______        \n");
     printf("___   |/  /______ _______ ___  /_______ \n");
     printf("__  /|_/ / _  __ \\__  __ \\__  //_/_  _ \\\n");
     printf("_  /  / /  / /_/ /_  / / /_  ,<   /  __/\n");
     printf("/_/  /_/   \\____/ /_/ /_/ /_/|_|  \\___/ \n");
-    printf("                                        \n");
+    printf("_____________  ______________________ \n");
+    printf("__  ___/__  / / /__  ____/__  /___  / \n");
+    printf("_____ \\__  /_/ /__  __/  __  / __  /  \n");
+    printf("____/ /_  __  / _  /___  _  /___  /___\n");
+    printf("/____/ /_/ /_/  /_____/  /_____/_____/\n");
+    printf("                                         \n");
     printf("Welcome to MonkeShell!\n");
 
-    readCommandLine(&currentCommandLine);
-
-    while (strcmp(currentCommandLine.commands[0].pathname, "exit") != 0)
+    while (1)
     {
-        cmdHandler(currentCommandLine);
-
         readCommandLine(&currentCommandLine);
+
         while (currentCommandLine.commandCount == 0)
         {
-            printf("No command entered\n");
+            printf("No command entered in loop\n");
             readCommandLine(&currentCommandLine);
         }
+
+        // Check for 'exit' immediately after reading the command
+        if (strcmp(currentCommandLine.commands[0].pathname, "exit") == 0)
+        {
+            break;
+        }
+        cmdHandler(currentCommandLine);
     }
     return 0;
 }
@@ -55,7 +132,6 @@ int main()
 void cmdHandler(COMMAND_LINE currentCommandLine)
 {
     int file;
-
     int pid;
     int i = 0;
     int in, fd[2];
@@ -79,7 +155,10 @@ void cmdHandler(COMMAND_LINE currentCommandLine)
 
             // execute command
             // execve(currentCommandLine.commands[0].pathname, currentCommandLine.commands[0].argv, NULL);
-            execProg(currentCommandLine.commands[0].pathname, currentCommandLine.commands[0].argv);
+            if (execProg(currentCommandLine.commands[0].pathname, currentCommandLine.commands[0].argv) == -1)
+            {
+                _exit(0);
+            }
         }
 
         pidStateHandler(pid, currentCommandLine.isBackground);
@@ -91,6 +170,10 @@ void cmdHandler(COMMAND_LINE currentCommandLine)
     if (currentCommandLine.hasPipe == 1)
     {
         in = execPipe(currentCommandLine, start);
+        if (in == -1)
+        {
+            return;
+        }
     }
 
     // execute last command
@@ -118,16 +201,20 @@ void cmdHandler(COMMAND_LINE currentCommandLine)
         }
 
         // execve(currentCommandLine.commands[lastCommand].pathname, currentCommandLine.commands[lastCommand].argv, NULL);
-        execProg(currentCommandLine.commands[lastCommand].pathname, currentCommandLine.commands[lastCommand].argv);
+        if (execProg(currentCommandLine.commands[lastCommand].pathname, currentCommandLine.commands[lastCommand].argv) == -1)
+        {
+            // error
+            // make sure to exit child process
+            _exit(0);
+        }
     }
 
     // wait for last command to finish
     pidStateHandler(pid, currentCommandLine.isBackground);
 }
 
-void execProg(char *pathname, char **argv)
+int execProg(char *pathname, char **argv)
 {
-
     // printf("trying to execute: %s\n", pathname);
     char testPath1[100] = "/bin/";
     char testPath2[100] = "/usr/bin/";
@@ -147,8 +234,8 @@ void execProg(char *pathname, char **argv)
                 // printf("trying to execute: %s\n", pathname);
                 if (execve(pathname, argv, NULL) == -1)
                 {
-                    printf("Command not found\n");
-                    return;
+                    printf("Command not found in exec\n");
+                    return -1;
                 }
             }
         }
@@ -205,7 +292,10 @@ int execPipe(COMMAND_LINE currentCommandLine, int start)
 
             // execute command
             // execve(currCMD->pathname, currCMD->argv, NULL);
-            execProg(currCMD->pathname, currCMD->argv);
+            if (execProg(currCMD->pathname, currCMD->argv) == -1)
+            {
+                _exit(0);
+            }
         }
 
         // close write end of pipe
@@ -324,6 +414,8 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
     }
     // set command count
     currentCommandLine->commandCount = commandCount;
+
+    printf("Command being return from read command: %s\n", currentCommandLine->commands[0].pathname);
 }
 
 void initCommandLine(COMMAND_LINE *currentCommandLine)
