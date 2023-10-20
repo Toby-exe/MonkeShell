@@ -1,6 +1,22 @@
 #ifndef MY_SHELL_H
 #define MY_SHELL_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include "string.h"
+#include "malloc.h"
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include "utils/str.h"
+#include "utils/mem.h"
+#include "signal.h"
+#include "utils/io.h"
+#include "termios.h"
+#include <dirent.h>
+
+
 #define MAX_ARGS 1024
 #define MAX_COMMANDS 128
 #define MAX_ARG_LENGTH 256
@@ -27,14 +43,11 @@ typedef struct {
     int isBackground;
 } COMMAND_LINE;
 
-typedef struct process {
-    pid_t pid;
-    char *name;
-    struct process *next;
-} PROCESS;
+typedef struct {
+    unsigned int experimentalFeatures;
+} SHELL_OPTIONS;
 
-
-void readCommandLine(COMMAND_LINE *);
+void readCommandLine(COMMAND_LINE *, int);
 void initCommandLine(COMMAND_LINE *);
 int execPipe(COMMAND_LINE, int);
 void execFileRedir(COMMAND_LINE *);
@@ -51,4 +64,9 @@ void setCommandLineConstants(COMMAND_LINE *currentCommandLine, int commandCount)
 void printWelcomeMessage();
 void printPrompt();
 int readUserInput(char *);
+char* generateSuggestions(char *);
+void addCommandToHistory(char *);
+char* readCommandHistory(int );
+int readUserInputExp(char *line);
+
 #endif

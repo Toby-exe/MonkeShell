@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include "types.h"
+#include "mem.h"
 
 // *** custom C standard library string.h *** //
 int c_strlen(const char *);
@@ -29,6 +30,8 @@ void *c_memset(void *, int, size_t);
 // *** non string.h methods *** //
 char get_char(const char *, int);
 bool contains(const char *, const char *);
+char *intToString(int );
+
 
 // *** may be useful for command line tokenizer *** //
 /*char *c_strtok(char *str, const char *delim)

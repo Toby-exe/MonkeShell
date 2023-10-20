@@ -86,13 +86,15 @@ The function header should be formatted as follows:
 ```c
 /**
  * @brief A brief description of the function
+ *
+ * Details (optional): A detailed description of the function
  * 
  * @param[in] param1 A description of the first parameter
  * .
  * .
  * .
  * @param[in] paramN A description of the Nth parameter
- * @return A description of the return value
+ * @return A description of the return value if there is one
  */
 ```
 

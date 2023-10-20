@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include "types.h"
 
+#define CLEAR_SCREEN "\033[2J"
+#define MOVE_PAGE_UP "\033[H"
 #define RESET_COLOR "\033[0m"
 #define RED "\033[31m"
 #define GREEN "\033[32m"
@@ -17,7 +19,6 @@
 #define BRIGHT_YELLOW "\033[33;1m"
 #define BG_BRIGHT_YELLOW "\u001b[43;1m"
 #define CUSTOM_COLOR_1 "\u001b[38;5;${226}m"
-
 
 
 //NOTE: FILE *stream == int fd

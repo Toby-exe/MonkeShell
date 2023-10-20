@@ -1,5 +1,6 @@
 #include "str.h"
 
+
 /*----------------------------------------------------------------------------------
 NOTE:
 all methods have been written with the assumption that the caller invokes them as
@@ -244,4 +245,24 @@ bool contains(const char *str, const char *substr)
 	}
 
 	return false;
+}
+
+char *intToString(int num)
+{
+    char *str = alloc(10 * sizeof(char));
+    int i = 0, j;
+    char temp;
+    while (num != 0)
+    {
+        str[i++] = (num % 10) + '0';
+        num /= 10;
+    }
+    // Reverse string
+    for (j = 0; j < i / 2; j++)
+    {
+        temp = str[j];
+        str[j] = str[i - j - 1];
+        str[i - j - 1] = temp;
+    }
+    return str;
 }

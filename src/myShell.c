@@ -1,22 +1,13 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "string.h"
-#include "malloc.h"
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <fcntl.h>
-#include "utils/str.h"
+
+
 #include "myShell.h"
-#include "utils/mem.h"
-#include "signal.h"
-#include "utils/io.h"
 
 extern char **environ;
 int shellPid;
 char prevPath[256];
 char prompt[256];
 
+const char potentialCommands[100][50] = {"ls", "cd", "pwd", "mkdir", "rmdir", "rm", "cat", "cp", "mv", "chmod", "chown", "chgrp", "ln", "touch", "grep", "wc", "sort", "whoami", "tty", "uname", "date", "cal", "bc", "clear", "exit"};
 
 void handleSigChld(int snum)
 {
@@ -24,18 +15,8 @@ void handleSigChld(int snum)
     int status;
 
     pid = wait(&status);
-    if (pid == -1)
-    {
-        // foreground jobs will have been waitpid'd by the time they terminate
-        // perror("wait");
-    }
-    else
-    {
-        printf("parent: child process pid=%d exited with status %d\n", (int)pid, WEXITSTATUS(status));
-    }
 
-    // removeJob(pid);
-    signal(SIGCHLD, handleSigChld); /* reset the signal, recall handleSigChld*/
+    signal(SIGCHLD, handleSigChld); // reset the signal, recall handleSigChld
 }
 
 void handleSigInt(int snum)
@@ -65,7 +46,7 @@ void cd(const char *dir)
     if (dir == NULL || c_strcmp(dir, "") == 0)
     {
         // save the current directory before changing it
-        c_fputs("in empty case\n", 1);
+        c_fputs("in empty case\n", STDOUT_FILENO);
         c_strcpy(prevPath, getcwd(buf, 256));
         chdir(getenv("HOME"));
         // chdir(getHomeDir());
@@ -73,17 +54,17 @@ void cd(const char *dir)
     // cd -: change to previous working directory
     else if (strncmp(dir, "-", 1) == 0)
     {
-        c_fputs("in prev case\n", 1);
+        c_fputs("in prev case\n", STDOUT_FILENO);
         char temp[256];
         c_strcpy(temp, getcwd(buf, 256)); // save current directory to temp
         chdir(prevPath);
         c_fputs(getcwd(buf, 256), 1);
-        c_fputs("\n", 1);
+        c_fputs("\n", STDOUT_FILENO);
         c_strcpy(prevPath, temp); // update prevPath with temp
     }
     else
     {
-        c_fputs("in normal case\n", 1);
+        c_fputs("in normal case\n", STDOUT_FILENO);
         //~ = home directory
         char new_dir[1024];
         if (dir[0] == '~')
@@ -100,7 +81,11 @@ void cd(const char *dir)
         c_strcpy(prevPath, getcwd(buf, 256));
         if (chdir(dir) != 0)
         {
-            printf("MonkeShell: cd: %s: No such file or directory\n", dir);
+            // redo using c_write
+            c_write("MonkeShell: cd: ", STDOUT_FILENO, RED);
+            c_write(dir, STDOUT_FILENO, RED);
+            c_write(": No such file or directory\n", STDOUT_FILENO, RED);
+
             return;
         }
     }
@@ -108,27 +93,49 @@ void cd(const char *dir)
     printf("changed directory\n");
 }
 
-void printError(char *msg)
+void shellOptions(SHELL_OPTIONS *options)
 {
-    c_write(msg, 1, RED);
+    c_write("MonkeShell options:\n", STDOUT_FILENO, CYAN);
+    // ask if they want to turn experimental features on
+    c_write("Turn experimental features on [y/n] \n", STDOUT_FILENO, CYAN);
+
+    char *input = alloc(56 * sizeof(char));
+    c_fgets(input, 56, STDIN_FILENO);
+
+    while (c_strncmp(input, "y", 1) != 0 && c_strncmp(input, "n", 1) != 0)
+    {
+        c_write("Invalid input, please enter 'y' or 'n'\n", STDOUT_FILENO, RED);
+        c_fgets(input, 56, STDIN_FILENO);
+    }
+
+    if (c_strncmp(input, "y", 1) == 0)
+    {
+        options->experimentalFeatures = 1;
+    }
+    else
+    {
+        options->experimentalFeatures = 0;
+    }
 }
 
 int main()
 {
     shellPid = getpid();
     signal(SIGINT, handleSigInt);
-    signal(SIGCHLD, handleSigChld); /* detect child termination */
+    signal(SIGCHLD, handleSigChld); // detect child termination
     COMMAND_LINE currentCommandLine;
+    SHELL_OPTIONS options;
 
+    shellOptions(&options);
     printWelcomeMessage();
 
     while (1)
     {
-        readCommandLine(&currentCommandLine);
+        readCommandLine(&currentCommandLine, options.experimentalFeatures);
 
         while (currentCommandLine.commandCount == 0)
         {
-            readCommandLine(&currentCommandLine);
+            readCommandLine(&currentCommandLine, options.experimentalFeatures);
         }
 
         // Check for 'exit' immediately after reading the command this should be part of a function that checks for built in commands
@@ -148,6 +155,17 @@ int main()
     return 0;
 }
 
+/**
+ * @brief Handles command line input and executes commands accordingly
+ *
+ * Details: This function takes a command line structure as input, which contains information
+ * about the commands to be executed, their arguments, and any associated input/output redirection
+ * or piping. It then forks child processes to execute each command in sequence, handling any necessary
+ * redirection or piping. If a command is meant to be run in the background, it does not wait for the
+ * child process to finish before returning.
+ *
+ * @param[in] currentCommandLine A structure containing the parsed command line input
+ */
 void cmdHandler(COMMAND_LINE currentCommandLine)
 {
     int file;
@@ -183,8 +201,14 @@ void cmdHandler(COMMAND_LINE currentCommandLine)
 
         pidStateHandler(pid, currentCommandLine.isBackground);
         // wait for child process to finish
-
-        start = 1;
+        if (currentCommandLine.commandCount == 1)
+        {
+            return;
+        }
+        else
+        {
+            start = 1;
+        }
     }
 
     if (currentCommandLine.hasPipe == 1)
@@ -233,12 +257,21 @@ void cmdHandler(COMMAND_LINE currentCommandLine)
     pidStateHandler(pid, currentCommandLine.isBackground);
 }
 
+/**
+ * Executes a program with the given pathname and arguments.
+ * If the program is not found in /bin or /usr/bin, it tries to execute it with the given pathname.
+ * If the program is not found, it prints an error message and returns -1.
+ *
+ * @param pathname The pathname of the program to execute.
+ * @param argv An array of arguments to pass to the program.
+ * @return 0 if the program is executed successfully, -1 otherwise.
+ */
 int execProg(char *pathname, char **argv)
 {
     // printf("trying to execute: %s\n", pathname);
     char testPath1[100] = "/bin/";
     char testPath2[100] = "/usr/bin/";
-    
+
     while (execve(testPath1, argv, environ) == -1)
     {
         // printf("trying to execute: %s\n", testPath1);
@@ -254,16 +287,29 @@ int execProg(char *pathname, char **argv)
                 // printf("trying to execute: %s\n", pathname);
                 if (execve(pathname, argv, environ) == -1)
                 {
-                    c_write("Command '", 1, RED);
+                    c_write("Command '", STDOUT_FILENO, RED);
                     c_write(pathname, 1, RED);
-                    c_write("' not found\n", 1, RED);
+                    c_write("' not found\n", STDOUT_FILENO, RED);
                     return -1;
                 }
             }
         }
     }
+
+    return 0;
 }
 
+/**
+ * @brief Handles the state of a child process based on whether it should run in the background or not
+ *
+ * This function takes a process ID (pid) and a flag indicating whether the process should run in the background.
+ * If the process is not meant to run in the background, it waits for the child process to finish before returning.
+ * If the process is meant to run in the background, it adds the child to a list of background processes and immediately returns.
+ *
+ * @param[in] pid The process ID of the child process
+ * @param[in] isBackground A flag indicating whether the process should run in the background (non-zero) or not (zero)
+ * @return The status of the child process
+ */
 int pidStateHandler(int pid, int isBackground)
 {
     int childStatus;
@@ -273,13 +319,26 @@ int pidStateHandler(int pid, int isBackground)
     }
     else
     {
-        // add child to background process list
-        printf("Added child to background process list\n");
-        printf("Child PID: %d\n", pid);
+        c_write("Added child to background process list\n", STDOUT_FILENO, NULL);
+        c_write("Child PID: ", STDOUT_FILENO, NULL);
+        c_write(intToString(pid), STDOUT_FILENO, GREEN);
+        c_write("\n", STDOUT_FILENO, GREEN);
     }
     return childStatus;
 }
 
+/**
+ * @brief Executes a pipeline of commands
+ *
+ * Details: This function takes a command line structure and a start index as input. It then creates a pipeline of commands
+ * starting from the command at the start index. Each command in the pipeline is executed in a new child process.
+ * The output of each command is piped to the input of the next command in the pipeline. If a command is meant to
+ * be run in the background, it does not wait for the child process to finish before moving on to the next command.
+ *
+ * @param[in] currentCommandLine A structure containing the parsed command line input
+ * @param[in] start The index of the first command in the pipeline
+ * @return The file descriptor for reading from the pipe connected to the output of the last command in the pipeline
+ */
 int execPipe(COMMAND_LINE currentCommandLine, int start)
 {
     COMMAND *currCMD;
@@ -312,8 +371,6 @@ int execPipe(COMMAND_LINE currentCommandLine, int start)
                 close(fd[WRITE_END]);
             }
 
-            // execute command
-            // execve(currCMD->pathname, currCMD->argv, NULL);
             if (execProg(currCMD->pathname, currCMD->argv) == -1)
             {
                 _exit(0);
@@ -333,7 +390,20 @@ int execPipe(COMMAND_LINE currentCommandLine, int start)
     return in;
 }
 
-void readCommandLine(COMMAND_LINE *currentCommandLine)
+/**
+ * @brief Reads a command line input and parses it into a COMMAND_LINE structure
+ *
+ * Details: This function takes a pointer to a COMMAND_LINE structure and an experimentalFeatures
+ * flag as input. It reads a line of command line input from the user, tokenizes it, and parses it
+ * into the COMMAND_LINE structure. The structure contains information about the commands to be
+ * executed, their arguments, and any associated input/output redirection or piping. If the experimental
+ * Features flag is set, it uses an experimental method to read user input - which allows for tabed auto
+ * complete (basic functionality) and command history (basic and very bugy functionality).
+ *
+ * @param[in,out] currentCommandLine A pointer to a COMMAND_LINE structure where the parsed command line input will be stored
+ * @param[in] experimentalFeatures A flag indicating whether to use an experimental method to read user input (non-zero) or not (zero)
+ */
+void readCommandLine(COMMAND_LINE *currentCommandLine, int experimentalFeatures)
 {
     int commandCount = 1;
     int argCount = 0;
@@ -345,12 +415,24 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
     free_all();
     // init all COMMAND_LINE values sshould be function later
     initCommandLine(currentCommandLine);
-    
+
     printPrompt();
-    // c_fgets(line, MAX_ARGS, 0);
-    if(readUserInput(line) == -1) {
-        currentCommandLine->commandCount = 0;
-        return;
+
+    if (experimentalFeatures == 1)
+    {
+        if (readUserInputExp(line) == -1)
+        {
+            currentCommandLine->commandCount = 0;
+            return;
+        }
+    }
+    else
+    {
+        if (readUserInput(line) == -1)
+        {
+            currentCommandLine->commandCount = 0;
+            return;
+        }
     }
 
     token = tokenize(line, " ");
@@ -388,6 +470,11 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
     setCommandLineConstants(currentCommandLine, commandCount);
 }
 
+/**
+ * @brief Initializes a COMMAND_LINE structure
+ *
+ * @param[in,out] currentCommandLine A pointer to a COMMAND_LINE structure to be initialized
+ */
 void initCommandLine(COMMAND_LINE *currentCommandLine)
 {
     currentCommandLine->hasPipe = 0;
@@ -404,6 +491,16 @@ void initCommandLine(COMMAND_LINE *currentCommandLine)
     }
 }
 
+/**
+ * @brief Checks for a background process token and sets a flag if found
+ * 
+ * Details: This function takes a pointer to a token and a pointer to a COMMAND_LINE structure as input.
+ * If the last character of the token is '&', it removes the '&' from the token and sets the isBackground 
+ * field of the COMMAND_LINE structure to 1.
+ * 
+ * @param[in,out] nextToken A pointer to the token to be checked
+ * @param[in,out] currentCommandLine A pointer to a COMMAND_LINE structure where the isBackground field will be set if necessary
+ */
 void handleBackgroundProcessToken(char **nextToken, COMMAND_LINE *currentCommandLine)
 {
     if ((*nextToken)[c_strlen(*nextToken) - 1] == '&')
@@ -414,12 +511,24 @@ void handleBackgroundProcessToken(char **nextToken, COMMAND_LINE *currentCommand
     }
 }
 
+/**
+ * @brief Processes a command token and stores it in a COMMAND structure
+ *
+ * Details: This function takes a pointer to a token, a pointer to a COMMAND structure, and a pointer to an argument count as input. 
+ * It copies the token into the argv array of the COMMAND structure and increments the argument count. 
+ * If the token is 'ls', it also adds '--color=auto' to the argv array and increments the argument count again. 
+ * Finally, it sets the argc field of the COMMAND structure to the argument count.
+ *
+ * @param[in,out] token A pointer to the token to be processed
+ * @param[in,out] currentCommand A pointer to a COMMAND structure where the processed token will be stored
+ * @param[in,out] argCount A pointer to an integer that keeps track of the number of arguments in the command
+ */
 void processCommandToken(char **token, COMMAND *currentCommand, int *argCount)
 {
     currentCommand->argv[*argCount] = alloc((c_strlen(*token) + 1) * sizeof(char));
     c_strcpy(currentCommand->argv[*argCount], *token);
 
-    // if token is ls add --color=auto
+    // if token is ls add --color=autor
     if (c_strcmp(*token, "ls") == 0)
     {
         currentCommand->argv[*argCount + 1] = alloc((c_strlen("--color=auto") + 1) * sizeof(char));
@@ -473,8 +582,8 @@ void setCommandLineConstants(COMMAND_LINE *currentCommandLine, int commandCount)
 /**
  * Tokenizes a string based on a given delimiter.
  *
- * @param s The string to be tokenized.
- * @param delm The delimiter to be used for tokenization.
+ * @param[in] s The string to be tokenized.
+ * @param[in] delm The delimiter to be used for tokenization.
  * @return A pointer to the next token in the string, or NULL if there are no more tokens.
  */
 char *tokenize(char *src, char *delm)
@@ -527,6 +636,257 @@ int readUserInput(char *line)
     line[c_strlen(line) - 1] = '\0';
 }
 
+int readUserInputExp(char *line)
+{
+    struct termios old_tio, new_tio;
+    tcgetattr(STDIN_FILENO, &old_tio);          // get current terminal I/O settings
+    new_tio = old_tio;                          // make new settings same as old settings
+    new_tio.c_lflag &= (~ICANON & ~ECHO);       // disable buffered I/O and echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_tio); // apply new settings
+
+    int c;
+    int i = 0;
+    int hIndex = 0;
+
+    while ((c = getchar()) != '\n')
+    {
+        if (c == '\t')
+        {
+            char *suggestion = generateSuggestions(line);
+            if (suggestion == NULL)
+            {
+                // beep
+                c_fputs('\a', 1);
+            }
+            else
+            {
+                // replace entire line with suggestion
+                for (int j = 0; j < i; j++)
+                {
+                    c_fputs('\b', 1); // move cursor back
+                }
+                for (int j = 0; j < i; j++)
+                {
+                    c_fputs(' ', 1); // overwrite with spaces
+                }
+                for (int j = 0; j < i; j++)
+                {
+                    c_fputs('\b', 1); // move cursor back again
+                }
+
+                strcpy(line, suggestion);
+                printf("%s", line);
+                i = strlen(line);
+            }
+
+            // reset suggestion
+            suggestion = NULL;
+        }
+        else if (c == 127) // ASCII value of backspace on Unix-like systems
+        {
+            if (i > 0)
+            {
+                i--;
+                c_fputs('\b', 1); // move cursor back
+                c_fputs(' ', 1);  // overwrite with space
+                // remove from line
+                for (int j = i; j < strlen(line); j++)
+                {
+                    line[j] = line[j + 1];
+                }
+                c_fputs('\b', 1); // move cursor back again
+            }
+        }
+        else if (c == 27)
+        {
+            // arrow keys
+            getchar(); // skip the '[' character
+            switch (getchar())
+            {         // the third character will indicate which arrow key was pressed
+            case 'A': // up arrow
+                strcpy(line, readCommandHistory(hIndex));
+
+                for (int j = 0; j < i; j++)
+                {
+                    c_fputs('\b', 1); // move cursor back
+                    c_fputs(' ', 1);  // overwrite with space
+                    c_fputs('\b', 1); // move cursor back again
+                }
+
+                printf("%s", line); // overwrite the line with the command from history
+
+                i = strlen(line);
+
+                hIndex++;
+
+                break;
+            case 'B': // down arrow
+                hIndex--;
+
+                if (hIndex < 0)
+                    hIndex = 0;
+
+                strcpy(line, readCommandHistory(hIndex));
+
+                for (int j = 0; j < i; j++)
+                {
+                    c_fputs('\b', 1); // move cursor back
+                    c_fputs(' ', 1);  // overwrite with space
+                    c_fputs('\b', 1); // move cursor back again
+                }
+
+                printf("%s", line); // overwrite the line with the command from history
+
+                i = strlen(line);
+
+                break;
+            case 'C': // right arrow
+            case 'D': // left arrow
+                break;
+            }
+        }
+        else
+        {
+            line[i] = c;
+            c_fputs(c, 1); // echo character immediately
+            i++;
+        }
+    }
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &old_tio); // restore old settings
+
+    printf("\nline: %s\n", line);
+
+    if (line[0] == '\0')
+    {
+        return -1;
+    }
+}
+
+void addCommandToHistory(char *command)
+{
+    // open the file in append mode
+    int fd = open("history.txt", O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (fd != -1)
+    {
+        write(fd, command, strlen(command)); // write the command to the file
+        write(fd, "\n", 1);                  // write a newline character
+        close(fd);                           // close the file
+    }
+    else
+    {
+        c_write("Failed to open history.txt", 1, RED);
+    }
+}
+
+char *readCommandHistory(int index)
+{
+
+    // read the command at the specified index from the history file
+    int fd = open("history.txt", O_RDONLY);
+    if (fd != -1)
+    {
+        char *line = alloc(1024 * sizeof(char));
+        int i = 0;
+        int j = 0;
+        int count = 0;
+        char c;
+
+        while (read(fd, &c, 1) > 0)
+        {
+            if (c == '\n')
+            {
+                count++;
+                if (count == index + 1)
+                {
+                    line[i] = '\0';
+                    break;
+                }
+                else
+                {
+                    i = 0;
+                }
+            }
+            else
+            {
+                line[i] = c;
+                i++;
+            }
+        }
+
+        close(fd);
+
+        return line;
+    }
+    else
+    {
+        c_write("Failed to open history.txt", 1, RED);
+        return NULL;
+    }
+}
+
+char *generateSuggestions(char *line)
+{
+    int i = 0;
+    int j = 0;
+
+    // find the last space in the line
+    char *last_space = strrchr(line, ' ');
+    char *search_term = line;
+    if (last_space != NULL)
+    {
+        search_term = last_space + 1; // start search after the last space
+    }
+
+    // search for potential commands first before searching for files
+
+    for (i = 0; i < 25; i++)
+    {
+        for (j = 0; j < c_strlen(search_term); j++)
+        {
+            if (search_term[j] != potentialCommands[i][j])
+            {
+                break;
+            }
+        }
+        if (j == c_strlen(search_term))
+        {
+            // replace search term in line with potential command
+            strcpy(search_term, potentialCommands[i]);
+            return line;
+        }
+    }
+
+    // if no potential commands match, search for files
+
+    DIR *d;
+    struct dirent *dir;
+    d = opendir(".");
+    if (d)
+    {
+        while ((dir = readdir(d)) != NULL)
+        {
+            for (j = 0; j < c_strlen(search_term); j++)
+            {
+                if (search_term[j] != dir->d_name[j])
+                {
+                    break;
+                }
+            }
+            if (j == c_strlen(search_term))
+            {
+                // replace search term in line with file/folder name
+                strcpy(search_term, dir->d_name);
+                closedir(d);
+                return line;
+            }
+        }
+        closedir(d);
+    }
+
+    return NULL;
+}
+
 /**
  * This function prints a welcome message to the user.
  * It displays the MonkeShell logo in ASCII art and a greeting message.
@@ -535,6 +895,11 @@ int readUserInput(char *line)
  */
 void printWelcomeMessage()
 {
+    // clear the screen
+    c_write(CLEAR_SCREEN, 1, NULL);
+    // move cursor to top left
+    c_write(MOVE_PAGE_UP, 1, NULL);
+
     c_write("______  ___               ______        \n", 1, YELLOW);
     c_write("___   |/  /______ _______ ___  /_______ \n", 1, YELLOW);
     c_write("__  /|_/ / _  __ \\__  __ \\__  //_/_  _ \\\n", 1, YELLOW);
@@ -547,7 +912,7 @@ void printWelcomeMessage()
     c_write("/____/ /_/ /_/  /_____/  /_____/_____/\n", 1, PURPLE);
     c_write("                                         \n", 1, CYAN);
 
-    printf("Welcome to MonkeShell!\n");
+    c_write("Welcome to MonkeShell!\n\n", 1, NULL);
 }
 
 void printPrompt()
