@@ -10,20 +10,13 @@
 #include "myShell.h"
 #include "utils/mem.h"
 #include "signal.h"
+#include "utils/io.h"
 
 extern char **environ;
-
-void readCommandLine(COMMAND_LINE *);
-void initCommandLine(COMMAND_LINE *);
-int execPipe(COMMAND_LINE, int);
-void execFileRedir(COMMAND_LINE *);
-char *tokenize(char *, char *);
-void cmdHandler(COMMAND_LINE);
-int pidStateHandler(int, int);
-int execProg(char *, char **);
-
-int showDebug = 0;
 int shellPid;
+char prevPath[256];
+char prompt[256];
+
 
 void handleSigChld(int snum)
 {
@@ -34,7 +27,7 @@ void handleSigChld(int snum)
     if (pid == -1)
     {
         // foreground jobs will have been waitpid'd by the time they terminate
-        perror("wait");
+        // perror("wait");
     }
     else
     {
@@ -47,47 +40,77 @@ void handleSigChld(int snum)
 
 void handleSigInt(int snum)
 {
-    // pid_t gpid = getpgrp();
-    // _fputs("forcefully terminating the process with ctrl+C\n", 1);
-    // kill(-gpid, SIGKILL);
-    // signal(SIGCHLD, SIG_DFL);
-
     pid_t pid = getpid();
     if (pid != shellPid)
     {
-        _fputs("forcefully terminating the process with ctrl+C\n", 1);
+        c_fputs("forcefully terminating the process with ctrl+C\n", 1);
         kill(pid, SIGKILL);
         signal(SIGINT, handleSigInt);
     }
     else
     {
-        _fputs("\nIN SHELL\n", 1);
-        // return to shell
-        signal(SIGINT, SIG_DFL);
-        return;
+        c_fputs("\nUse 'exit' to terminate MonkeShell\n", 1);
+        // signal(SIGINT, SIG_DFL);
+        // kill(pid, SIGINT);
     }
 }
 
+void cd(const char *dir)
+{
+    char buf[256];
+    // _fputs(dir, 1);
+    // _fputs("\n", 1);
 
-void inputRedirection(COMMAND_LINE currentCommandLine) {
-    int file;
-    int pid;
+    // cd without any arguments: changes the working directory to the home directory
+    if (dir == NULL || c_strcmp(dir, "") == 0)
+    {
+        // save the current directory before changing it
+        c_fputs("in empty case\n", 1);
+        c_strcpy(prevPath, getcwd(buf, 256));
+        chdir(getenv("HOME"));
+        // chdir(getHomeDir());
+    }
+    // cd -: change to previous working directory
+    else if (strncmp(dir, "-", 1) == 0)
+    {
+        c_fputs("in prev case\n", 1);
+        char temp[256];
+        c_strcpy(temp, getcwd(buf, 256)); // save current directory to temp
+        chdir(prevPath);
+        c_fputs(getcwd(buf, 256), 1);
+        c_fputs("\n", 1);
+        c_strcpy(prevPath, temp); // update prevPath with temp
+    }
+    else
+    {
+        c_fputs("in normal case\n", 1);
+        //~ = home directory
+        char new_dir[1024];
+        if (dir[0] == '~')
+        {
+            // sprintf(new_dir, "%s%s", getenv("HOME"), dir + 1);
+            // use c_strcat instead
+            c_strcpy(new_dir, getenv("HOME"));
+            c_strcat(new_dir, dir + 1);
 
-    pid = fork();
+            dir = new_dir;
+        }
 
-    if (pid == 0) {
-        // child process
-        file = open(currentCommandLine.inputFile, O_RDONLY);
-        dup2(file, STDIN_FILENO);
-        close(file);
-
-        // execute command
-        if (execProg(currentCommandLine.commands[0].pathname, currentCommandLine.commands[0].argv) == -1) {
-            _exit(0);
+        // cd <pathname>: change to specified directory (includes "." and "../")
+        c_strcpy(prevPath, getcwd(buf, 256));
+        if (chdir(dir) != 0)
+        {
+            printf("MonkeShell: cd: %s: No such file or directory\n", dir);
+            return;
         }
     }
 
-    pidStateHandler(pid, currentCommandLine.isBackground);
+    printf("changed directory\n");
+}
+
+void printError(char *msg)
+{
+    c_write(msg, 1, RED);
 }
 
 int main()
@@ -96,18 +119,8 @@ int main()
     signal(SIGINT, handleSigInt);
     signal(SIGCHLD, handleSigChld); /* detect child termination */
     COMMAND_LINE currentCommandLine;
-    printf("______  ___               ______        \n");
-    printf("___   |/  /______ _______ ___  /_______ \n");
-    printf("__  /|_/ / _  __ \\__  __ \\__  //_/_  _ \\\n");
-    printf("_  /  / /  / /_/ /_  / / /_  ,<   /  __/\n");
-    printf("/_/  /_/   \\____/ /_/ /_/ /_/|_|  \\___/ \n");
-    printf("_____________  ______________________ \n");
-    printf("__  ___/__  / / /__  ____/__  /___  / \n");
-    printf("_____ \\__  /_/ /__  __/  __  / __  /  \n");
-    printf("____/ /_  __  / _  /___  _  /___  /___\n");
-    printf("/____/ /_/ /_/  /_____/  /_____/_____/\n");
-    printf("                                         \n");
-    printf("Welcome to MonkeShell!\n");
+
+    printWelcomeMessage();
 
     while (1)
     {
@@ -115,15 +128,21 @@ int main()
 
         while (currentCommandLine.commandCount == 0)
         {
-            printf("No command entered in loop\n");
             readCommandLine(&currentCommandLine);
         }
 
-        // Check for 'exit' immediately after reading the command
-        if (strcmp(currentCommandLine.commands[0].pathname, "exit") == 0)
+        // Check for 'exit' immediately after reading the command this should be part of a function that checks for built in commands
+        if (c_strcmp(currentCommandLine.commands[0].pathname, "exit") == 0)
         {
             break;
         }
+
+        if (c_strcmp(currentCommandLine.commands[0].pathname, "cd") == 0)
+        {
+            cd(currentCommandLine.commands[0].argv[1]);
+            continue;
+        }
+
         cmdHandler(currentCommandLine);
     }
     return 0;
@@ -140,6 +159,7 @@ void cmdHandler(COMMAND_LINE currentCommandLine)
     int start = 0;
     in = 0;
     int lastCommand = currentCommandLine.commandCount - 1;
+    // last command
 
     if (currentCommandLine.inputFile != NULL)
     {
@@ -200,8 +220,8 @@ void cmdHandler(COMMAND_LINE currentCommandLine)
             close(file);
         }
 
-        // execve(currentCommandLine.commands[lastCommand].pathname, currentCommandLine.commands[lastCommand].argv, NULL);
-        if (execProg(currentCommandLine.commands[lastCommand].pathname, currentCommandLine.commands[lastCommand].argv) == -1)
+        currCMD = &currentCommandLine.commands[lastCommand];
+        if (execProg(currCMD->pathname, currCMD->argv) == -1)
         {
             // error
             // make sure to exit child process
@@ -218,23 +238,25 @@ int execProg(char *pathname, char **argv)
     // printf("trying to execute: %s\n", pathname);
     char testPath1[100] = "/bin/";
     char testPath2[100] = "/usr/bin/";
-
-    while (execve(testPath1, argv, NULL) == -1)
+    
+    while (execve(testPath1, argv, environ) == -1)
     {
         // printf("trying to execute: %s\n", testPath1);
-        strcat(testPath1, pathname);
+        c_strcat(testPath1, pathname);
         // printf("trying to execute: %s\n", testPath1);
-        if (execve(testPath1, argv, NULL) == -1)
+        if (execve(testPath1, argv, environ) == -1)
         {
             // printf("trying to execute: %s\n", testPath2);
-            strcat(testPath2, pathname);
+            c_strcat(testPath2, pathname);
             // printf("trying to execute: %s\n", testPath2);
-            if (execve(testPath2, argv, NULL) == -1)
+            if (execve(testPath2, argv, environ) == -1)
             {
                 // printf("trying to execute: %s\n", pathname);
-                if (execve(pathname, argv, NULL) == -1)
+                if (execve(pathname, argv, environ) == -1)
                 {
-                    printf("Command not found in exec\n");
+                    c_write("Command '", 1, RED);
+                    c_write(pathname, 1, RED);
+                    c_write("' not found\n", 1, RED);
                     return -1;
                 }
             }
@@ -315,107 +337,55 @@ void readCommandLine(COMMAND_LINE *currentCommandLine)
 {
     int commandCount = 1;
     int argCount = 0;
-    char *token;
+    char *token = alloc(MAX_ARG_LENGTH * sizeof(char));
+    char *nextToken = alloc(MAX_ARG_LENGTH * sizeof(char));
     char line[1024];
     int skipToken = 0;
 
+    free_all();
     // init all COMMAND_LINE values sshould be function later
     initCommandLine(currentCommandLine);
-
-    write(1, "Monke$ ", 7);
-
-    _fgets(line, 1024, 0);
-    // check to see if the user entered a command
-    if (line[0] == '\n')
-    {
-        // no command entered
+    
+    printPrompt();
+    // c_fgets(line, MAX_ARGS, 0);
+    if(readUserInput(line) == -1) {
         currentCommandLine->commandCount = 0;
         return;
     }
 
-    line[strlen(line) - 1] = '\0';
     token = tokenize(line, " ");
 
     while (token != NULL)
     {
-        char *nextToken = tokenize(NULL, " ");
-        if (_strncmp(token, "|", 1) == 0)
+        nextToken = tokenize(NULL, " ");
+        if (c_strncmp(token, "|", 1) == 0)
         {
-            currentCommandLine->pipeCount++;
-            currentCommandLine->hasPipe = 1;
-            if (nextToken != NULL)
-            {
-                commandCount++;
-                argCount = 0;
-            }
+            processPipeToken(&nextToken, currentCommandLine, &commandCount, &argCount);
         }
-        else if (_strncmp(token, ">", 1) == 0)
+        else if (c_strncmp(token, ">", 1) == 0)
         {
-            // the next token will be the name of the output file
-            if (nextToken[strlen(nextToken) - 1] == '&')
-            {
-                // remove & from token
-                nextToken[strlen(nextToken) - 1] = '\0';
-                currentCommandLine->isBackground = 1;
-            }
-            currentCommandLine->outputFile = alloc((strlen(nextToken) + 1) * sizeof(char));
-            strcpy(currentCommandLine->outputFile, nextToken);
+            processOutputRedirToken(&nextToken, currentCommandLine);
             skipToken = 1;
         }
-        else if (_strncmp(token, "<", 1) == 0)
+        else if (c_strncmp(token, "<", 1) == 0)
         {
-            // the next token will be the name of the input file
-            if (nextToken[strlen(nextToken) - 1] == '&')
-            {
-                // remove & from token
-                nextToken[strlen(nextToken) - 1] = '\0';
-                currentCommandLine->isBackground = 1;
-            }
-            currentCommandLine->inputFile = alloc((strlen(nextToken) + 1) * sizeof(char));
-            strcpy(currentCommandLine->inputFile, nextToken);
+            processInputRedirToken(&nextToken, currentCommandLine);
             skipToken = 1;
         }
-        else if (_strncmp(token, "&", 1) == 0)
+        else if (c_strncmp(token, "&", 1) == 0)
         {
-            // the next token will be the name of the input file
             currentCommandLine->isBackground = 1;
         }
-        else
+        else if (skipToken == 0)
         {
-            if (token[strlen(token) - 1] == '&')
-            {
-                // remove & from token
-                token[strlen(token) - 1] = '\0';
-                currentCommandLine->isBackground = 1;
-            }
-
-            if (skipToken == 0)
-            {
-                COMMAND *currentCommand = &currentCommandLine->commands[commandCount - 1];
-                // init all COMMAND values sshould be function later
-                currentCommand->argv[argCount] = alloc((strlen(token) + 1) * sizeof(char));
-                strcpy(currentCommand->argv[argCount], token);
-                // printf("Allocated memory for argv[%d]: %s\n", argCount, currentCommand->argv[argCount]);
-                argCount++;
-                currentCommand->argc = argCount;
-            }
-            skipToken = 0;
+            handleBackgroundProcessToken(&token, currentCommandLine);
+            COMMAND *currentCommand = &currentCommandLine->commands[commandCount - 1];
+            processCommandToken(&token, currentCommand, &argCount);
         }
         token = nextToken;
     }
 
-    // set pathname for each command
-    for (int i = 0; i < commandCount; i++)
-    {
-        COMMAND *currentCommand = &currentCommandLine->commands[i];
-        currentCommand->pathname = currentCommand->argv[0];
-        // null terminate each command
-        currentCommand->argv[currentCommand->argc] = NULL;
-    }
-    // set command count
-    currentCommandLine->commandCount = commandCount;
-
-    printf("Command being return from read command: %s\n", currentCommandLine->commands[0].pathname);
+    setCommandLineConstants(currentCommandLine, commandCount);
 }
 
 void initCommandLine(COMMAND_LINE *currentCommandLine)
@@ -432,6 +402,72 @@ void initCommandLine(COMMAND_LINE *currentCommandLine)
     {
         currentCommandLine->commands[0].argv[i] = NULL;
     }
+}
+
+void handleBackgroundProcessToken(char **nextToken, COMMAND_LINE *currentCommandLine)
+{
+    if ((*nextToken)[c_strlen(*nextToken) - 1] == '&')
+    {
+        // remove & from token
+        (*nextToken)[c_strlen(*nextToken) - 1] = '\0';
+        currentCommandLine->isBackground = 1;
+    }
+}
+
+void processCommandToken(char **token, COMMAND *currentCommand, int *argCount)
+{
+    currentCommand->argv[*argCount] = alloc((c_strlen(*token) + 1) * sizeof(char));
+    c_strcpy(currentCommand->argv[*argCount], *token);
+
+    // if token is ls add --color=auto
+    if (c_strcmp(*token, "ls") == 0)
+    {
+        currentCommand->argv[*argCount + 1] = alloc((c_strlen("--color=auto") + 1) * sizeof(char));
+        c_strcpy(currentCommand->argv[*argCount + 1], "--color=auto");
+        (*argCount)++;
+    }
+
+    (*argCount)++;
+    currentCommand->argc = *argCount;
+}
+
+void processOutputRedirToken(char **nextToken, COMMAND_LINE *currentCommandLine)
+{
+    handleBackgroundProcessToken(nextToken, currentCommandLine);
+    currentCommandLine->outputFile = alloc((c_strlen(*nextToken) + 1) * sizeof(char));
+    c_strcpy(currentCommandLine->outputFile, *nextToken);
+}
+
+void processInputRedirToken(char **nextToken, COMMAND_LINE *currentCommandLine)
+{
+    handleBackgroundProcessToken(nextToken, currentCommandLine);
+    currentCommandLine->inputFile = alloc((c_strlen(*nextToken) + 1) * sizeof(char));
+    c_strcpy(currentCommandLine->inputFile, *nextToken);
+}
+
+void processPipeToken(char **nextToken, COMMAND_LINE *currentCommandLine, int *commandCount, int *argCount)
+{
+    currentCommandLine->pipeCount++;
+    currentCommandLine->hasPipe = 1;
+    if (*nextToken != NULL)
+    {
+        (*commandCount)++;
+        *argCount = 0;
+    }
+}
+
+void setCommandLineConstants(COMMAND_LINE *currentCommandLine, int commandCount)
+{
+    // set pathname for each command
+    for (int i = 0; i < commandCount; i++)
+    {
+        COMMAND *currentCommand = &currentCommandLine->commands[i];
+        currentCommand->pathname = currentCommand->argv[0];
+        // null terminate each command
+        currentCommand->argv[currentCommand->argc] = NULL;
+    }
+    // set command count
+    currentCommandLine->commandCount = commandCount;
 }
 
 /**
@@ -455,7 +491,7 @@ char *tokenize(char *src, char *delm)
         return NULL;
 
     /* skip leading delimiters */
-    input += strspn(input, delm);
+    input += c_strspn(input, delm);
 
     /* if we are at the end of the string, return NULL */
     if (*input == '\0')
@@ -466,7 +502,7 @@ char *tokenize(char *src, char *delm)
     {
         /* find the end of the token */
         token = input;
-        input += strcspn(input, delm);
+        input += c_strcspn(input, delm);
 
         /* if not at the end of the string, terminate the token and set input
         to the next character */
@@ -475,4 +511,47 @@ char *tokenize(char *src, char *delm)
 
         return token;
     }
+}
+
+int readUserInput(char *line)
+{
+    c_fgets(line, MAX_ARGS, 0);
+
+    // check to see if the user entered a command
+    if (line[0] == '\n')
+    {
+        // no command entered
+        return -1;
+    }
+
+    line[c_strlen(line) - 1] = '\0';
+}
+
+/**
+ * This function prints a welcome message to the user.
+ * It displays the MonkeShell logo in ASCII art and a greeting message.
+ *
+ * @return void
+ */
+void printWelcomeMessage()
+{
+    c_write("______  ___               ______        \n", 1, YELLOW);
+    c_write("___   |/  /______ _______ ___  /_______ \n", 1, YELLOW);
+    c_write("__  /|_/ / _  __ \\__  __ \\__  //_/_  _ \\\n", 1, YELLOW);
+    c_write("_  /  / /  / /_/ /_  / / /_  ,<   /  __/\n", 1, YELLOW);
+    c_write("/_/  /_/   \\____/ /_/ /_/ /_/|_|  \\___/ \n", 1, YELLOW);
+    c_write("_____________  ______________________ \n", 1, PURPLE);
+    c_write("__  ___/__  / / /__  ____/__  /___  / \n", 1, PURPLE);
+    c_write("_____ \\__  /_/ /__  __/  __  / __  /  \n", 1, PURPLE);
+    c_write("____/ /_  __  / _  /___  _  /___  /___\n", 1, PURPLE);
+    c_write("/____/ /_/ /_/  /_____/  /_____/_____/\n", 1, PURPLE);
+    c_write("                                         \n", 1, CYAN);
+
+    printf("Welcome to MonkeShell!\n");
+}
+
+void printPrompt()
+{
+    c_write(getcwd(prompt, 256), 1, CYAN);
+    c_write("$ ", 1, PURPLE);
 }

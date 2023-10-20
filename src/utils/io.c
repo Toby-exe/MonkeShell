@@ -1,10 +1,10 @@
 #include "io.h"
 
 // ==================== INPUT ==================== //
-int _fscanf(int fd, const char *format, ...) { return -1; }
+int c_fscanf(int fd, const char *format, ...) { return -1; }
 
 // adds newline character from input
-char *_fgets(char *buffer, int size, int fd)
+char *c_fgets(char *buffer, int size, int fd)
 {
     int bytesRead = 0;
     char ch;
@@ -18,7 +18,7 @@ char *_fgets(char *buffer, int size, int fd)
 
         if (n < 0)
         {
-            //perror("read"); // replace with _perror("read");
+            // perror("read"); // replace with _perror("read");
             return NULL;
         }
 
@@ -44,30 +44,40 @@ char *_fgets(char *buffer, int size, int fd)
 }
 
 // adds newline character from input
-ssize_t _getline(char **lineptr, size_t *n, int fd)
+ssize_t c_getline(char **lineptr, size_t *n, int fd)
 {
     return 0;
 }
 
 // ==================== OUTPUT ==================== //
-int _fprintf(File *stream, const char *format, ...) { return -1; }
+int v_fprintf(File *stream, const char *format, ...) { return -1; }
 
-int _fputs(const char *s, int fd) 
-{ 
-    if(s == NULL)
+int c_fputs(const char *s, int fd)
+{
+    if (s == NULL)
         return -1;
 
     int msg_len = 0;
-    while(s[msg_len] != '\0')
+    while (s[msg_len] != '\0')
         msg_len++;
 
     ssize_t bytes_written = write(fd, s, msg_len);
 
-    //write error
-    if(bytes_written == -1)
+    // write error
+    if (bytes_written == -1)
         return -1;
 
     return bytes_written;
 }
 
-// ==================== ERROR/DEBUG ==================== //
+int c_write(const char *s, int fd, const char *color) {
+    if(s == NULL) return -1;
+
+    if (color != NULL) {
+        c_fputs(color, fd);
+    }
+    c_fputs(s, fd);
+    if(color != NULL) {
+        c_fputs(RESET_COLOR, fd);
+    }
+}
