@@ -61,6 +61,7 @@ Lastly, we started researching how jobs and signals work in Linux to prepare for
 3. Implement I/O redirection
 4. Implement background processes
 5. Implement Signals 
+6. Create a unit test driver for the utils module
 
 #### Achived: 
 
@@ -87,7 +88,7 @@ Lastly, we planned to implement signals in our shell, but we did not get to this
 
 #### Achived: 
 
-This week we are able to implement N stage pipes. We also implemented correct managment of background processes via signals. We were also able to complete colors, printing the current directory, changing the current directory. We had been documenting our progress throughout the project, so we were able to complete the documentation and other supporting documents. We did make a great effort to implement jobs, command history, and auto complete but they proved to be too difficult to implement in the time we had left. 
+This week we are able to implement N stage pipes. We also implemented correct managment of background processes via signals. We were also able to complete colors, printing the current directory, changing the current directory. We had been documenting our progress throughout the project, so we were able to complete the documentation and other supporting documents. We did make a great effort to implement jobs, command history, and auto complete but they proved to be too difficult to implement in the time we had left. Lastly after trying many testing libraries we found that simply creating our own test driver from scratch to unit test our utils module was the best option.
 
 ## How We Divided the Work
 
