@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-To ensure consistency when testing the shell interactively should begin in the testEnv directory.
+To ensure consistency when testing the shell interactively should begin in the testEnv directory after the program has been compiled.
 
 ```bash
 cd MonkeShell/tests/testEnv

@@ -10,6 +10,7 @@ MONKE_OBJ = $(patsubst %.c,$(OBJDIR)/%.o, $(filter-out %utils_test.c, $(SRC)))
 UTILS_TEST_OBJ = $(patsubst %.c,$(OBJDIR)/%.o, $(filter-out %monkeSh.c %myShell.c, $(SRC)))
 MONKE_EXE=monkeSh
 UTILS_TEST_EXE=utils_test
+TEST_ENV_DIR=tests/testEnv
 
 $(OBJDIR)/%.o: %.c $(DEPS)
 	mkdir -p $(@D)
@@ -29,8 +30,11 @@ testUtils: $(UTILS_TEST_EXE)
 monke: $(MONKE_EXE)
 	./$(MONKE_EXE)
 
+testEnvMonke: $(MONKE_EXE)
+	cp ./$(MONKE_EXE) ./$(TEST_ENV_DIR)/$(MONKE_EXE)
+
 clean:
 	rm -f $(OBJ) $(MONKE_EXE) $(UTILS_TEST_EXE)
 
-all: clean $(MONKE_EXE) $(UTILS_TEST_EXE)
+all: clean $(MONKE_EXE) $(UTILS_TEST_EXE) testEnvMonke
 	./$(UTILS_TEST_EXE) && ./$(MONKE_EXE)
