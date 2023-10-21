@@ -1,11 +1,13 @@
+/**
+ * @file str.c
+ * @authors Tobias Wondwossen, Jayden Mingle
+ * 
+ * Notes: all methods have been written with the assumption that the caller invokes them as 
+ * intended such that no memory corruption will take place
+ * 
+ * @date 2023-10-20 
+ */
 #include "str.h"
-
-
-/*----------------------------------------------------------------------------------
-NOTE:
-all methods have been written with the assumption that the caller invokes them as
-intended such that no memory corruption will take place
-----------------------------------------------------------------------------------*/
 
 int c_strlen(const char *str)
 {

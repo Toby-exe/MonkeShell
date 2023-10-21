@@ -7,7 +7,7 @@ DEPS = $(shell find . -type f -name "*.h")
 SRC = $(shell find . -type f -name "*.c")
 OBJDIR=obj
 MONKE_OBJ = $(patsubst %.c,$(OBJDIR)/%.o, $(filter-out %utils_test.c, $(SRC)))
-UTILS_TEST_OBJ = $(patsubst %.c,$(OBJDIR)/%.o, $(filter-out %myShell.c, $(SRC)))
+UTILS_TEST_OBJ = $(patsubst %.c,$(OBJDIR)/%.o, $(filter-out %monkeSh.c %myShell.c, $(SRC)))
 MONKE_EXE=monkeSh
 UTILS_TEST_EXE=utils_test
 

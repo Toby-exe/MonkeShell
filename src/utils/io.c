@@ -1,6 +1,12 @@
+/**
+ * @file io.c
+ * @authors Tobias Wondwossen, Jayden Mingle
+ * 
+ * @date 2023-10-20 
+ */
 #include "io.h"
 
-// ==================== INPUT ==================== //
+// ==================== INPUT ==================== 
 int c_fscanf(int fd, const char *format, ...) { return -1; }
 
 // adds newline character from input

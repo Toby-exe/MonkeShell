@@ -1,5 +1,10 @@
+/**
+ * @file mem.c
+ * @authors Tobias Wondwossen, Jayden Mingle
+ * 
+ * @date 2023-10-20 
+ */
 #include "mem.h"
-
 char heap[HEAP_LEN];
 size_t heapOffset = 0;
 
@@ -8,7 +13,7 @@ size_t heapOffset = 0;
  * allocated block in the heap. can store any type using 
  * (type *)alloc(amount(in size_t) x sizeof(type))
  *
- * @param block_sz The number of bytes to be allocated.
+ * @param[in] block_sz The number of bytes to be allocated.
  * @return A pointer to the start of the allocated block in the heap.
  */
 void *alloc(size_t block_sz)

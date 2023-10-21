@@ -1,159 +1,18 @@
-
-
+/**
+ * @file myShell.c
+ * @authors Tobias Wondwossen, Jayden Mingle
+ * 
+ * @date 2023-10-20 
+ */
 #include "myShell.h"
 
 extern char **environ;
-int shellPid;
 char prevPath[256];
 char prompt[256];
+extern int shellPid;
 
 const char potentialCommands[100][50] = {"ls", "cd", "pwd", "mkdir", "rmdir", "rm", "cat", "cp", "mv", "chmod", "chown", "chgrp", "ln", "touch", "grep", "wc", "sort", "whoami", "tty", "uname", "date", "cal", "bc", "clear", "exit"};
 
-void handleSigChld(int snum)
-{
-    pid_t pid;
-    int status;
-
-    pid = wait(&status);
-
-    signal(SIGCHLD, handleSigChld); // reset the signal, recall handleSigChld
-}
-
-void handleSigInt(int snum)
-{
-    pid_t pid = getpid();
-    if (pid != shellPid)
-    {
-        c_fputs("forcefully terminating the process with ctrl+C\n", 1);
-        kill(pid, SIGKILL);
-        signal(SIGINT, handleSigInt);
-    }
-    else
-    {
-        c_fputs("\nUse 'exit' to terminate MonkeShell\n", 1);
-        // signal(SIGINT, SIG_DFL);
-        // kill(pid, SIGINT);
-    }
-}
-
-void cd(const char *dir)
-{
-    char buf[256];
-    // _fputs(dir, 1);
-    // _fputs("\n", 1);
-
-    // cd without any arguments: changes the working directory to the home directory
-    if (dir == NULL || c_strcmp(dir, "") == 0)
-    {
-        // save the current directory before changing it
-        c_fputs("in empty case\n", STDOUT_FILENO);
-        c_strcpy(prevPath, getcwd(buf, 256));
-        chdir(getenv("HOME"));
-        // chdir(getHomeDir());
-    }
-    // cd -: change to previous working directory
-    else if (strncmp(dir, "-", 1) == 0)
-    {
-        c_fputs("in prev case\n", STDOUT_FILENO);
-        char temp[256];
-        c_strcpy(temp, getcwd(buf, 256)); // save current directory to temp
-        chdir(prevPath);
-        c_fputs(getcwd(buf, 256), 1);
-        c_fputs("\n", STDOUT_FILENO);
-        c_strcpy(prevPath, temp); // update prevPath with temp
-    }
-    else
-    {
-        c_fputs("in normal case\n", STDOUT_FILENO);
-        //~ = home directory
-        char new_dir[1024];
-        if (dir[0] == '~')
-        {
-            // sprintf(new_dir, "%s%s", getenv("HOME"), dir + 1);
-            // use c_strcat instead
-            c_strcpy(new_dir, getenv("HOME"));
-            c_strcat(new_dir, dir + 1);
-
-            dir = new_dir;
-        }
-
-        // cd <pathname>: change to specified directory (includes "." and "../")
-        c_strcpy(prevPath, getcwd(buf, 256));
-        if (chdir(dir) != 0)
-        {
-            // redo using c_write
-            c_write("MonkeShell: cd: ", STDOUT_FILENO, RED);
-            c_write(dir, STDOUT_FILENO, RED);
-            c_write(": No such file or directory\n", STDOUT_FILENO, RED);
-
-            return;
-        }
-    }
-
-    printf("changed directory\n");
-}
-
-void shellOptions(SHELL_OPTIONS *options)
-{
-    c_write("MonkeShell options:\n", STDOUT_FILENO, CYAN);
-    // ask if they want to turn experimental features on
-    c_write("Turn experimental features on [y/n] \n", STDOUT_FILENO, CYAN);
-
-    char *input = alloc(56 * sizeof(char));
-    c_fgets(input, 56, STDIN_FILENO);
-
-    while (c_strncmp(input, "y", 1) != 0 && c_strncmp(input, "n", 1) != 0)
-    {
-        c_write("Invalid input, please enter 'y' or 'n'\n", STDOUT_FILENO, RED);
-        c_fgets(input, 56, STDIN_FILENO);
-    }
-
-    if (c_strncmp(input, "y", 1) == 0)
-    {
-        options->experimentalFeatures = 1;
-    }
-    else
-    {
-        options->experimentalFeatures = 0;
-    }
-}
-
-int main()
-{
-    shellPid = getpid();
-    signal(SIGINT, handleSigInt);
-    signal(SIGCHLD, handleSigChld); // detect child termination
-    COMMAND_LINE currentCommandLine;
-    SHELL_OPTIONS options;
-
-    shellOptions(&options);
-    printWelcomeMessage();
-
-    while (1)
-    {
-        readCommandLine(&currentCommandLine, options.experimentalFeatures);
-
-        while (currentCommandLine.commandCount == 0)
-        {
-            readCommandLine(&currentCommandLine, options.experimentalFeatures);
-        }
-
-        // Check for 'exit' immediately after reading the command this should be part of a function that checks for built in commands
-        if (c_strcmp(currentCommandLine.commands[0].pathname, "exit") == 0)
-        {
-            break;
-        }
-
-        if (c_strcmp(currentCommandLine.commands[0].pathname, "cd") == 0)
-        {
-            cd(currentCommandLine.commands[0].argv[1]);
-            continue;
-        }
-
-        cmdHandler(currentCommandLine);
-    }
-    return 0;
-}
 
 /**
  * @brief Handles command line input and executes commands accordingly
@@ -485,7 +344,7 @@ void initCommandLine(COMMAND_LINE *currentCommandLine)
     currentCommandLine->outputFile = NULL;
     currentCommandLine->commands[0].pathname = NULL;
     currentCommandLine->commands[0].argc = 0;
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < MAX_ARGS; i++)
     {
         currentCommandLine->commands[0].argv[i] = NULL;
     }
@@ -493,11 +352,11 @@ void initCommandLine(COMMAND_LINE *currentCommandLine)
 
 /**
  * @brief Checks for a background process token and sets a flag if found
- * 
+ *
  * Details: This function takes a pointer to a token and a pointer to a COMMAND_LINE structure as input.
- * If the last character of the token is '&', it removes the '&' from the token and sets the isBackground 
+ * If the last character of the token is '&', it removes the '&' from the token and sets the isBackground
  * field of the COMMAND_LINE structure to 1.
- * 
+ *
  * @param[in,out] nextToken A pointer to the token to be checked
  * @param[in,out] currentCommandLine A pointer to a COMMAND_LINE structure where the isBackground field will be set if necessary
  */
@@ -514,9 +373,9 @@ void handleBackgroundProcessToken(char **nextToken, COMMAND_LINE *currentCommand
 /**
  * @brief Processes a command token and stores it in a COMMAND structure
  *
- * Details: This function takes a pointer to a token, a pointer to a COMMAND structure, and a pointer to an argument count as input. 
- * It copies the token into the argv array of the COMMAND structure and increments the argument count. 
- * If the token is 'ls', it also adds '--color=auto' to the argv array and increments the argument count again. 
+ * Details: This function takes a pointer to a token, a pointer to a COMMAND structure, and a pointer to an argument count as input.
+ * It copies the token into the argv array of the COMMAND structure and increments the argument count.
+ * If the token is 'ls', it also adds '--color=auto' to the argv array and increments the argument count again.
  * Finally, it sets the argc field of the COMMAND structure to the argument count.
  *
  * @param[in,out] token A pointer to the token to be processed
@@ -529,7 +388,7 @@ void processCommandToken(char **token, COMMAND *currentCommand, int *argCount)
     c_strcpy(currentCommand->argv[*argCount], *token);
 
     // if token is ls add --color=autor
-    if (c_strcmp(*token, "ls") == 0)
+    if (c_strcmp(*token, "ls") == 0 || c_strcmp(*token, "grep") == 0)
     {
         currentCommand->argv[*argCount + 1] = alloc((c_strlen("--color=auto") + 1) * sizeof(char));
         c_strcpy(currentCommand->argv[*argCount + 1], "--color=auto");
@@ -540,6 +399,15 @@ void processCommandToken(char **token, COMMAND *currentCommand, int *argCount)
     currentCommand->argc = *argCount;
 }
 
+/**
+ * @brief Processes the output redirection token in a command line.
+ *
+ * Details: This function handles the output redirection token in a command line. It first checks if the command
+ * is meant to be run in the background, and then allocates memory for and copies the output file name from the next token.
+ *
+ * @param[in,out] nextToken A pointer to the next token in the command line. This function will update it to point to the output file name.
+ * @param[out] currentCommandLine A pointer to the current command line structure. This function will update its 'outputFile' field with the output file name.
+ */
 void processOutputRedirToken(char **nextToken, COMMAND_LINE *currentCommandLine)
 {
     handleBackgroundProcessToken(nextToken, currentCommandLine);
@@ -547,6 +415,15 @@ void processOutputRedirToken(char **nextToken, COMMAND_LINE *currentCommandLine)
     c_strcpy(currentCommandLine->outputFile, *nextToken);
 }
 
+/**
+ * @brief Processes the input redirection token in a command line.
+ *
+ * Details: This function handles the input redirection token in a command line. It first checks if the command is meant to
+ * be run in the background, and then allocates memory for and copies the input file name from the next token.
+ *
+ * @param[in,out] nextToken A pointer to the next token in the command line. This function will update it to point to the input file name.
+ * @param[out] currentCommandLine A pointer to the current command line structure. This function will update its 'inputFile' field with the input file name.
+ */
 void processInputRedirToken(char **nextToken, COMMAND_LINE *currentCommandLine)
 {
     handleBackgroundProcessToken(nextToken, currentCommandLine);
@@ -554,6 +431,17 @@ void processInputRedirToken(char **nextToken, COMMAND_LINE *currentCommandLine)
     c_strcpy(currentCommandLine->inputFile, *nextToken);
 }
 
+/**
+ * @brief Processes the pipe token in a command line.
+ *
+ * Details: This function handles the pipe token in a command line. It increments the pipe count, sets the 'hasPipe' flag,
+ * and if there is a next token, increments the command count and resets the argument count.
+ *
+ * @param[in,out] nextToken A pointer to the next token in the command line. This function will update it to point to the next command after the pipe.
+ * @param[out] currentCommandLine A pointer to the current command line structure. This function will update its 'pipeCount' and 'hasPipe' fields.
+ * @param[in,out] commandCount A pointer to the current command count. This function will increment it if there is a next token.
+ * @param[out] argCount A pointer to the current argument count. This function will reset it to 0 if there is a next token.
+ */
 void processPipeToken(char **nextToken, COMMAND_LINE *currentCommandLine, int *commandCount, int *argCount)
 {
     currentCommandLine->pipeCount++;
@@ -565,6 +453,17 @@ void processPipeToken(char **nextToken, COMMAND_LINE *currentCommandLine, int *c
     }
 }
 
+/**
+ * @brief Sets the command line constants for each command in a command line.
+ *
+ * Details: This function sets the pathname for each command in a command line, null terminates each command, and 
+ * sets the command count in the command line structure.
+ *
+ * @param[out] currentCommandLine A pointer to the current command line structure. This function will update its 'commandCount' 
+ *                                field and the 'pathname' and 'argv' fields of each command.
+ * @param[in] commandCount The number of commands in the command line. This function will use it to iterate over each command 
+ *                         and set it as the 'commandCount' field of the command line structure.
+ */
 void setCommandLineConstants(COMMAND_LINE *currentCommandLine, int commandCount)
 {
     // set pathname for each command
@@ -582,9 +481,12 @@ void setCommandLineConstants(COMMAND_LINE *currentCommandLine, int commandCount)
 /**
  * Tokenizes a string based on a given delimiter.
  *
+ * Details: This function takes a string and a delimiter as input. It tokenizes the string based on the delimiter and
+ * returns the next token. If the string is NULL, it resets the input string to the beginning of the string. If the
+ * string is empty, it returns NULL.
+ *
  * @param[in] s The string to be tokenized.
  * @param[in] delm The delimiter to be used for tokenization.
- * @return A pointer to the next token in the string, or NULL if there are no more tokens.
  */
 char *tokenize(char *src, char *delm)
 {
@@ -622,9 +524,19 @@ char *tokenize(char *src, char *delm)
     }
 }
 
+/**
+ * @brief Reads user input into a line.
+ *
+ * Details: This function reads user input into a line using the `c_fgets` function. If the user did not enter 
+ * a command (i.e., only pressed enter), the function returns -1. Otherwise, it replaces the newline character 
+ * at the end of the line with a null character.
+ * 
+ * @param[out] line A pointer to the line where the user input will be stored. This function will update it with the user input.
+ * @return int Returns -1 if no command was entered by the user; otherwise, it does not return a value.
+ */
 int readUserInput(char *line)
 {
-    c_fgets(line, MAX_ARGS, 0);
+    c_fgets(line, MAX_ARGS, STDIN_FILENO);
 
     // check to see if the user entered a command
     if (line[0] == '\n')
@@ -636,6 +548,184 @@ int readUserInput(char *line)
     line[c_strlen(line) - 1] = '\0';
 }
 
+/**
+ * @brief Changes the current working directory.
+ *
+ * Details: This function changes the current working directory based on the given directory string. It handles three cases: 
+ * changing to the home directory, changing to the previous working directory, and changing to a specified directory.
+ * 
+ * @param[in] dir A pointer to a string representing the directory to change to. If this string is NULL or empty, 
+ *                the function changes to the home directory. If this string is "-", the function changes to the 
+ *                previous working directory. Otherwise, it changes to the specified directory.
+ */
+void changeDir(const char *dir)
+{
+    char buf[256];
+    // _fputs(dir, 1);
+    // _fputs("\n", 1);
+
+    // cd without any arguments: changes the working directory to the home directory
+    if (dir == NULL || c_strcmp(dir, "") == 0)
+    {
+        // save the current directory before changing it
+        c_fputs("in empty case\n", STDOUT_FILENO);
+        c_strcpy(prevPath, getcwd(buf, 256));
+        chdir(getenv("HOME"));
+        // chdir(getHomeDir());
+    }
+    // cd -: change to previous working directory
+    else if (strncmp(dir, "-", 1) == 0)
+    {
+        c_fputs("in prev case\n", STDOUT_FILENO);
+        char temp[256];
+        c_strcpy(temp, getcwd(buf, 256)); // save current directory to temp
+        chdir(prevPath);
+        c_fputs(getcwd(buf, 256), 1);
+        c_fputs("\n", STDOUT_FILENO);
+        c_strcpy(prevPath, temp); // update prevPath with temp
+    }
+    else
+    {
+        c_fputs("in normal case\n", STDOUT_FILENO);
+        //~ = home directory
+        char new_dir[1024];
+        if (dir[0] == '~')
+        {
+            // sprintf(new_dir, "%s%s", getenv("HOME"), dir + 1);
+            // use c_strcat instead
+            c_strcpy(new_dir, getenv("HOME"));
+            c_strcat(new_dir, dir + 1);
+
+            dir = new_dir;
+        }
+
+        // cd <pathname>: change to specified directory (includes "." and "../")
+        c_strcpy(prevPath, getcwd(buf, 256));
+        if (chdir(dir) != 0)
+        {
+            // redo using c_write
+            c_write("MonkeShell: cd: ", STDOUT_FILENO, RED);
+            c_write(dir, STDOUT_FILENO, RED);
+            c_write(": No such file or directory\n", STDOUT_FILENO, RED);
+
+            return;
+        }
+    }
+
+    printf("changed directory\n");
+}
+
+/**
+ * @brief Handles the SIGCHLD signal.
+ *
+ * Details: This function is a signal handler for the SIGCHLD signal. It reaps all zombie child processes that have 
+ * terminated but not yet been waited for.
+ * 
+ * @param[in] snum The signal number. This function expects it to be SIGCHLD.
+ */
+void handleSigChld(int snum)
+{
+    pid_t pid;
+    int status;
+
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
+    {
+        // get all the zombie process
+    }
+}
+
+/**
+ * @brief Handles the SIGINT signal.
+ *
+ * Details: This function is a signal handler for the SIGINT signal. If the process receiving the signal is not 
+ * the shell process, it terminates the process. Otherwise, it prompts the user to use 'exit' to terminate the shell.
+ * 
+ * @param[in] snum The signal number. This function expects it to be SIGINT.
+ */
+void handleSigInt(int snum)
+{
+    pid_t pid = getpid();
+    if (pid != shellPid)
+    {
+        c_fputs("forcefully terminating the process with ctrl+C\n", 1);
+        kill(pid, SIGKILL);
+        signal(SIGINT, handleSigInt);
+    }
+    else
+    {
+        c_fputs("\nUse 'exit' to terminate MonkeShell\n", 1);
+        // signal(SIGINT, SIG_DFL);
+        // kill(pid, SIGINT);
+    }
+}
+
+/**
+ * @brief Prompts the user to turn on experimental features and sets the corresponding option in the SHELL_OPTIONS struct.
+ * 
+ * @param options A pointer to the SHELL_OPTIONS struct to set the experimentalFeatures option.
+ */
+void shellOptions(SHELL_OPTIONS *options)
+{
+    c_write("MonkeShell options:\n", STDOUT_FILENO, CYAN);
+    // ask if they want to turn experimental features on
+    c_write("Turn experimental features on [y/n] \n", STDOUT_FILENO, CYAN);
+
+    char *input = alloc(56 * sizeof(char));
+    c_fgets(input, 56, STDIN_FILENO);
+
+    while (c_strncmp(input, "y", 1) != 0 && c_strncmp(input, "n", 1) != 0)
+    {
+        c_write("Invalid input, please enter 'y' or 'n'\n", STDOUT_FILENO, RED);
+        c_fgets(input, 56, STDIN_FILENO);
+    }
+
+    if (c_strncmp(input, "y", 1) == 0)
+    {
+        options->experimentalFeatures = 1;
+    }
+    else
+    {
+        options->experimentalFeatures = 0;
+    }
+}
+
+/**
+ * @brief This function prints a welcome message to the user.
+ * It displays the MonkeShell logo in ASCII art and a greeting message.
+ */
+void printWelcomeMessage()
+{
+    // clear the screen
+    c_write(CLEAR_SCREEN, 1, NULL);
+    // move cursor to top left
+    c_write(MOVE_PAGE_UP, 1, NULL);
+
+    c_write("______  ___               ______        \n", 1, YELLOW);
+    c_write("___   |/  /______ _______ ___  /_______ \n", 1, YELLOW);
+    c_write("__  /|_/ / _  __ \\__  __ \\__  //_/_  _ \\\n", 1, YELLOW);
+    c_write("_  /  / /  / /_/ /_  / / /_  ,<   /  __/\n", 1, YELLOW);
+    c_write("/_/  /_/   \\____/ /_/ /_/ /_/|_|  \\___/ \n", 1, YELLOW);
+    c_write("_____________  ______________________ \n", 1, PURPLE);
+    c_write("__  ___/__  / / /__  ____/__  /___  / \n", 1, PURPLE);
+    c_write("_____ \\__  /_/ /__  __/  __  / __  /  \n", 1, PURPLE);
+    c_write("____/ /_  __  / _  /___  _  /___  /___\n", 1, PURPLE);
+    c_write("/____/ /_/ /_/  /_____/  /_____/_____/\n", 1, PURPLE);
+    c_write("                                         \n", 1, CYAN);
+
+    c_write("Welcome to MonkeShell!\n\n", 1, NULL);
+}
+
+/**
+ * Prints the shell prompt, which consists of the current working directory
+ * and a "$" symbol.
+ */
+void printPrompt()
+{
+    c_write(getcwd(prompt, 256), 1, CYAN);
+    c_write("$ ", 1, PURPLE);
+}
+
+/****************************************** EXPIREMENTAL *******************************************/
 int readUserInputExp(char *line)
 {
     struct termios old_tio, new_tio;
@@ -656,22 +746,22 @@ int readUserInputExp(char *line)
             if (suggestion == NULL)
             {
                 // beep
-                c_fputs('\a', 1);
+                putchar('\a');
             }
             else
             {
                 // replace entire line with suggestion
                 for (int j = 0; j < i; j++)
                 {
-                    c_fputs('\b', 1); // move cursor back
+                    putchar('\b'); // move cursor back
                 }
                 for (int j = 0; j < i; j++)
                 {
-                    c_fputs(' ', 1); // overwrite with spaces
+                    putchar(' '); // overwrite with spaces
                 }
                 for (int j = 0; j < i; j++)
                 {
-                    c_fputs('\b', 1); // move cursor back again
+                    putchar('\b'); // move cursor back again
                 }
 
                 strcpy(line, suggestion);
@@ -687,14 +777,14 @@ int readUserInputExp(char *line)
             if (i > 0)
             {
                 i--;
-                c_fputs('\b', 1); // move cursor back
-                c_fputs(' ', 1);  // overwrite with space
+                putchar('\b'); // move cursor back
+                putchar(' ');  // overwrite with space
                 // remove from line
                 for (int j = i; j < strlen(line); j++)
                 {
                     line[j] = line[j + 1];
                 }
-                c_fputs('\b', 1); // move cursor back again
+                putchar('\b'); // move cursor back again
             }
         }
         else if (c == 27)
@@ -708,9 +798,9 @@ int readUserInputExp(char *line)
 
                 for (int j = 0; j < i; j++)
                 {
-                    c_fputs('\b', 1); // move cursor back
-                    c_fputs(' ', 1);  // overwrite with space
-                    c_fputs('\b', 1); // move cursor back again
+                    putchar('\b');    // move cursor back
+                    putchar(' ');     // overwrite with space
+                    putchar('\b'); // move cursor back again
                 }
 
                 printf("%s", line); // overwrite the line with the command from history
@@ -730,9 +820,9 @@ int readUserInputExp(char *line)
 
                 for (int j = 0; j < i; j++)
                 {
-                    c_fputs('\b', 1); // move cursor back
-                    c_fputs(' ', 1);  // overwrite with space
-                    c_fputs('\b', 1); // move cursor back again
+                    putchar('\b');    // move cursor back
+                    putchar(' ');     // overwrite with space
+                    putchar('\b'); // move cursor back again
                 }
 
                 printf("%s", line); // overwrite the line with the command from history
@@ -748,7 +838,7 @@ int readUserInputExp(char *line)
         else
         {
             line[i] = c;
-            c_fputs(c, 1); // echo character immediately
+            putchar(c); // echo character immediately
             i++;
         }
     }
@@ -885,38 +975,4 @@ char *generateSuggestions(char *line)
     }
 
     return NULL;
-}
-
-/**
- * This function prints a welcome message to the user.
- * It displays the MonkeShell logo in ASCII art and a greeting message.
- *
- * @return void
- */
-void printWelcomeMessage()
-{
-    // clear the screen
-    c_write(CLEAR_SCREEN, 1, NULL);
-    // move cursor to top left
-    c_write(MOVE_PAGE_UP, 1, NULL);
-
-    c_write("______  ___               ______        \n", 1, YELLOW);
-    c_write("___   |/  /______ _______ ___  /_______ \n", 1, YELLOW);
-    c_write("__  /|_/ / _  __ \\__  __ \\__  //_/_  _ \\\n", 1, YELLOW);
-    c_write("_  /  / /  / /_/ /_  / / /_  ,<   /  __/\n", 1, YELLOW);
-    c_write("/_/  /_/   \\____/ /_/ /_/ /_/|_|  \\___/ \n", 1, YELLOW);
-    c_write("_____________  ______________________ \n", 1, PURPLE);
-    c_write("__  ___/__  / / /__  ____/__  /___  / \n", 1, PURPLE);
-    c_write("_____ \\__  /_/ /__  __/  __  / __  /  \n", 1, PURPLE);
-    c_write("____/ /_  __  / _  /___  _  /___  /___\n", 1, PURPLE);
-    c_write("/____/ /_/ /_/  /_____/  /_____/_____/\n", 1, PURPLE);
-    c_write("                                         \n", 1, CYAN);
-
-    c_write("Welcome to MonkeShell!\n\n", 1, NULL);
-}
-
-void printPrompt()
-{
-    c_write(getcwd(prompt, 256), 1, CYAN);
-    c_write("$ ", 1, PURPLE);
 }

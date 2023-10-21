@@ -1,0 +1,4 @@
+foo
+numbers.txt
+random.c
+write.txt
