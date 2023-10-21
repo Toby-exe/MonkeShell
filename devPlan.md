@@ -94,8 +94,8 @@ This week we are able to implement N stage pipes. We also implemented correct ma
 
 | Name             | Tasks                                                                 |
 |------------------|-----------------------------------------------------------------------|
-| `Tobias Wondwossen`| Redirection, N stage pipelines, colors, parser, tokenizer, background processes, path searching, code, testing driver,  organization |
-| `Jayden Mingle`    | Custom string library, custom IO library, custom mem library, signals, Changing Directory Command, Printing current Directory,  |
+| `Tobias Wondwossen`| Redirection, N stage pipelines, colors, parser, tokenizer, background processes, path searching, testing driver,  organization |
+| `Jayden Mingle`    | Custom string library, custom IO library, custom mem library, signals, Changing Directory Command, Printing current Directory, Jobs  |
 | `All`    | Documentation, Planning, Managment|
 
 

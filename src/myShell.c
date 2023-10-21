@@ -626,11 +626,10 @@ void handleSigChld(int snum)
 {
     pid_t pid;
     int status;
+    
+    pid = waitpid(-1, &status, WNOHANG);
 
-    while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
-    {
-        // get all the zombie process
-    }
+    signal(SIGCHLD, handleSigChld); /* reset the signal, recall handleSigChld*/
 }
 
 /**
