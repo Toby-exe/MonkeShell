@@ -1,7 +1,24 @@
+/**
+ * @file mem.h
+ * @brief A header file defining custom memory allocation functions and constants
+ * @authors Tobias Wondwossen, Jayden Mingle
+ * 
+ * Details: This header file defines custom memory allocation functions alloc and free_all. It also defines a heap 
+ * of fixed size (HEAP_LEN) for allocation, and a heapOffset variable to keep track of the current offset in the 
+ * heap. The alloc function is used to allocate a specified amount of memory from the heap, and the free_all 
+ * function is used to reset the heapOffset to zero, effectively freeing all allocated memory.
+ * 
+ * Assumptions/Limitations: The functions in this file are assumed to be compatible with the rest of the program. 
+ * The alloc function does not handle cases where the requested size exceeds the remaining space in the heap. The 
+ * free_all function does not individually free allocated blocks, but resets the entire heap. The heap size is 
+ * fixed and defined by HEAP_LEN.
+ *
+ *@date 2023-10-20
+ */
 #ifndef MEM_H
 #define MEM_H
 
-// ********** custom memory allocation ********** //
+// ********** custom memory allocation ********** 
 /*
 *   EXAMPLE:
 *             |>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|

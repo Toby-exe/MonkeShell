@@ -13,7 +13,6 @@ extern int shellPid;
 
 const char potentialCommands[100][50] = {"ls", "cd", "pwd", "mkdir", "rmdir", "rm", "cat", "cp", "mv", "chmod", "chown", "chgrp", "ln", "touch", "grep", "wc", "sort", "whoami", "tty", "uname", "date", "cal", "bc", "clear", "exit"};
 
-
 /**
  * @brief Handles command line input and executes commands accordingly
  *

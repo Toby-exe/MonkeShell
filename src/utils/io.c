@@ -1,15 +1,25 @@
 /**
  * @file io.c
  * @authors Tobias Wondwossen, Jayden Mingle
- * 
  * @date 2023-10-20 
  */
 #include "io.h"
 
-// ==================== INPUT ==================== 
+/**
+ * @brief A placeholder function for formatted input from a file descriptor
+ * @param[in] fd The file descriptor to read from
+ * @param[in] format The format string that specifies how to interpret the input
+ * @return -1 as this function is not implemented
+ */
 int c_fscanf(int fd, const char *format, ...) { return -1; }
 
-// adds newline character from input
+/**
+ * @brief Reads a line from a file descriptor into a buffer
+ * @param[out] buffer The buffer to read the line into
+ * @param[in] size The maximum number of characters to read
+ * @param[in] fd The file descriptor to read from
+ * @return A pointer to the buffer, or NULL if an error occurred or end of file was reached before any characters were read
+ */
 char *c_fgets(char *buffer, int size, int fd)
 {
     int bytesRead = 0;
@@ -49,15 +59,33 @@ char *c_fgets(char *buffer, int size, int fd)
     return buffer;
 }
 
-// adds newline character from input
+/**
+ * @brief A placeholder function for getting a line from a file descriptor
+ * @param[out] lineptr A pointer to the variable that points to the buffer storing the line
+ * @param[out] n A pointer to the variable that saves the size of the buffer
+ * @param[in] fd The file descriptor to read from
+ * @return 0 as this function is not implemented
+ */
 ssize_t c_getline(char **lineptr, size_t *n, int fd)
 {
     return 0;
 }
 
-// ==================== OUTPUT ==================== //
+/**
+ * @brief A placeholder function for formatted output to a file descriptor
+ * @param[out] stream The file descriptor to write to
+ * @param[in] format The format string that specifies how to format the output
+ * @return -1 as this function is not implemented
+ */
 int v_fprintf(File *stream, const char *format, ...) { return -1; }
 
+
+/**
+ * @brief Writes a string to a file descriptor
+ * @param[in] s The string to write
+ * @param[in] fd The file descriptor to write to
+ * @return The number of characters written, or -1 if an error occurred
+ */
 int c_fputs(const char *s, int fd)
 {
     if (s == NULL)
@@ -76,6 +104,13 @@ int c_fputs(const char *s, int fd)
     return bytes_written;
 }
 
+/**
+ * @brief Writes a string to a file descriptor with optional color
+ * @param[in] s The string to write
+ * @param[in] fd The file descriptor to write to
+ * @param[in] color The color to use for the output. If NULL, no color is used.
+ * @return -1 if s is NULL, otherwise it returns the result of c_fputs function.
+ */
 int c_write(const char *s, int fd, const char *color) {
     if(s == NULL) return -1;
 

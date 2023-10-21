@@ -1,7 +1,6 @@
 /**
  * @file test.c
  * @authors Tobias Wondwossen, Jayden Mingle
- * 
  * @date 2023-10-20 
  */
 #include <stdio.h>

@@ -1,3 +1,20 @@
+/**
+ * @file io.h
+ * @brief A header file defining custom IO functions and color constants
+ * @authors Tobias Wondwossen, Jayden Mingle
+ * 
+ * Details: This header file defines several custom IO functions that mimic the functionality of the standard C 
+ * library. It includes functions for reading from and writing to files, and getting lines from a file. It also 
+ * defines several color constants for use in terminal output.
+ * 
+ * Assumptions/Limitations: The functions in this file are assumed to be compatible with the rest of the program. 
+ * The c_fscanf function uses a variable number of arguments, which must match the format string. The c_fgets and 
+ * c_getline functions return a pointer to the read string, which may need to be freed by the caller. The c_fprintf, 
+ * c_fputs, and c_write functions write to a file descriptor, which must be open for writing.
+ *
+ * @date 2023-10-20
+ */
+
 #ifndef IO_H
 #define IO_H
 
@@ -21,28 +38,15 @@
 #define CUSTOM_COLOR_1 "\u001b[38;5;${226}m"
 
 
-//NOTE: FILE *stream == int fd
+// NOTE: FILE *stream == int fd
 
-// *** custom C standard library stdio.h *** //
-// *** INPUT *** //
 int c_fscanf(int, const char *format, ...);
 char *c_fgets(char *, int, int);
 ssize_t c_getline(char **, size_t *, int);
 
-// *** OUTPUT *** //
+
 int c_fprintf(File *stream, const char *format, ...);
 int c_fputs(const char *s, int);
 int c_write(const char *s, int fd, const char *color);
-
-
-// *** ERROR / DEBUG *** //
-//uses stderr instead of stdin or stdout
-//void error(int status, int errnum, const char *format, ...);
-//void perror(const char *s); (basically just printf)
-//int ferror(File *stream);
-//char *strerror(int errnum);
-
-// *** non stdio.h methods *** //
-
 
 #endif
